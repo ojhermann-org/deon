@@ -24,7 +24,7 @@ defeasible, has a contrary-to-duty tail (restatement), and its core predicate
 ## Predicate inventory (colored)
 
 | Predicate | Color | Grounds in | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `simultaneous-receipt-consumption` | judgment | 15.35(a) | open-textured "benefits" |
 | `customer-controlled-asset` | judgment | 15.35(b) | leans on control definition |
 | `no-alt-use-and-enforceable-payment` | judgment | 15.35(c) | judgment about a legal fact |

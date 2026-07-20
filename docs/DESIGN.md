@@ -89,8 +89,8 @@ antecedent  := predicate
              | judgment-aggregation(factors*, grounds)   # weighed factors, NO combination rule
 ```
 
-The `judgment-aggregation` node is load-bearing: it is how deon refuses to fake a
-weighed judgment (e.g. IFRS 15.38 point-in-time indicators) as a formula.
+The `judgment-aggregation` node is load-bearing: it is how deon refuses to fake
+a weighed judgment (e.g. IFRS 15.38 point-in-time indicators) as a formula.
 Mechanical connectives may compose over judgment atoms — this is the core
 discovery (a standard's _structure_ is mechanical, its _criteria_ judgment).
 
@@ -124,8 +124,8 @@ file — OKF-format markdown: the norm block is the YAML frontmatter, the
 authoritative cited prose is the body beneath it. The field names differ from the
 abstract grammar in two deliberate ways:
 
-- A commitment's `deontic-target` is written as the **domain field(s) it sets** —
-  `classification: finance`, `timing: over-time`, `capitalize: false`,
+- A commitment's `deontic-target` is written as the **domain field(s) it sets**
+  — `classification: finance`, `timing: over-time`, `capitalize: false`,
   `adjustment: prior-period` — rather than the literal key `deontic-target`;
   the structural keys `method`, `estimate-inputs`, and `modifies` keep their
   grammar names where they appear (e.g. `method: retrospective`).
