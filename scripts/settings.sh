@@ -25,8 +25,14 @@ REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 NAME="$(jq -r .name "$RULESET_FILE")"
 
 # The fields that define the ruleset; server-added metadata (id, timestamps,
-# _links, source) is dropped so the diff shows only meaningful drift.
-normalize() { jq -S '{name, target, enforcement, bypass_actors, conditions, rules}'; }
+# _links, source) is dropped so the diff shows only meaningful drift. `rules` is
+# sorted by type because GitHub re-canonicalizes rule order on every PUT (a
+# newly-added rule lands last), so a positional diff would report that reordering
+# as spurious drift even when the content matches exactly.
+normalize() {
+  jq -S '{name, target, enforcement, bypass_actors, conditions,
+          rules: (.rules | sort_by(.type))}'
+}
 
 existing_id() {
   gh api "repos/$REPO/rulesets" \
