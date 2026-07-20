@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The checks must also run on the merge queue's temporary branches, or a
+  # queued PR waits forever for a status that never reports.
+  merge_group:
+
+# Newer pushes to the same branch supersede in-flight runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The fast hygiene hooks: nixfmt, deadnix, statix, markdownlint, check-yaml,
+  # and whitespace/EOF — exactly the local pre-commit set, so CI == `nix flake
+  # check` (one source of truth). This is deon's founding required-status leg;
+  # the Rust checker's fmt/clippy/test gate joins it when the checker lands.
+  hooks:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - run: nix flake check -L

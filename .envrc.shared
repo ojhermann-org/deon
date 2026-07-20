@@ -1,0 +1,8 @@
+# Shared, version-controlled on-entry setup (see the global ~/.claude direnv
+# convention). Each clone keeps a thin, untracked local `.envrc` that just
+# `source_env`s this file.
+#
+# `use flake` loads the Nix dev shell, which provides the lint/hygiene tools and
+# installs the git hooks. (The Rust checker's toolchain, and the Lean seam after
+# it, join the flake when they land.)
+use flake

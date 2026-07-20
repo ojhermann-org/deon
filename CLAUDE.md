@@ -19,8 +19,8 @@ Keep that seam contract in mind when touching either repo.
 
 ## Scope: the language, not the norms
 
-deon owns the **language + checker** — the semantics and tooling. It is **not** a
-collection of norms and **not** an authority on accounting. Norm *content* lives
+deon owns the **language + checker** — the semantics and tooling. It is **not**
+a collection of norms and **not** an authority on accounting. Norm *content* lives
 beside its cited prose in an OKF judgment bundle; deon *consumes* those bundles
 and checks them (`examples/` holds two seed norms until an OKF bundle exists to
 hold them). This mirrors Pacioli's own machinery-vs-data split — keep it sharp:

@@ -20,7 +20,7 @@ mechanical tests, to see whether the spike-1 feature list holds or grows.
 ## The five classic criteria — finance lease if ANY hold
 
 | Criterion | Color | Note |
-|---|---|---|
+| --- | --- | --- |
 | ownership transfers by end of term | mechanical (contract fact) | decidable from an input flag |
 | purchase option reasonably certain | judgment | probabilistic lessee-behavior assessment |
 | term ≥ major part of economic life | **regime-dependent** | ASC 840: `≥ 0.75` mechanical; IAS 17: "major part" judgment |
