@@ -6,10 +6,16 @@ Status: exploratory design, representational-only. Rests on two paper spikes
 norm files ([`../examples/`](../examples/)). No execution semantics proposed yet
 — see Non-goals.
 
+deon is the judgment-side sibling to
+**[Pacioli](https://github.com/ojhermann-org/pacioli)** (the verified Lean
+mechanics); its bottom edge _is_ [Pacioli's seam][pacioli-seam], and "the Lean
+seam" / "downstream Lean" throughout this note always refer to that library.
+
 ## 1. Purpose
 
-A structured, checkable layer _inside_ the judgment side that sits between OKF
-prose and the plain-data seam Lean consumes. It does not replace OKF and does not
+A structured, checkable layer _inside_ the judgment side that sits between
+**Open Knowledge Format** ([OKF][okf-spec]) prose and the plain-data seam Lean
+consumes. It does not replace OKF and does not
 touch Lean types. Its value is three things Lean-and-prose cannot give on their
 own:
 
@@ -27,14 +33,18 @@ names the judgment chain.
 
 - **Top edge grounds in OKF prose + citations.** Open-textured predicates resolve
   there; the prose stays authoritative. If rule and prose disagree, prose wins.
-- **Bottom edge grounds in the Lean seam.** Every well-formed norm terminates in
-  a _commitment about plain data_ the kernel will check. A norm that never
-  constrains seam data is malformed.
+- **Bottom edge grounds in the [Pacioli Lean seam][pacioli-seam].** Every
+  well-formed norm terminates in a _commitment about plain data_ the kernel will
+  check — the point where, per Pacioli's interface contract, a judgment produces
+  plain-data _inputs_ and the Lean kernel consumes them deterministically. A norm
+  that never constrains seam data is malformed.
 - **Not in the pure core.** This is judgment-side / downstream tooling; it must
-  not add an applied surface to the Lean library (Pacioli #41) and must not put
-  policy into a Lean type (the seam invariant), one level up.
+  not add an applied surface to the Lean library
+  ([Pacioli #41][pacioli-41]) and must not put policy into a Lean type (the seam
+  invariant), one level up.
 - **The type system encodes the seam.** The mechanical/judgment cut is a checked
-  property, exactly as "policy never leaks into types" is on the Lean side.
+  property, exactly as ["policy never leaks into types"][pacioli-seam] is on the
+  Lean side.
 
 ## 3. Abstract syntax (node types)
 
@@ -179,3 +189,7 @@ method + estimate bundles feeding downstream Lean.
 - **No neural components built.** Section 6 marks where they attach; none are
   proposed for the first cut.
 - **Nothing lands in the pure Lean core.**
+
+[okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+[pacioli-seam]: https://github.com/ojhermann-org/pacioli#the-interface-contract-the-crux
+[pacioli-41]: https://github.com/ojhermann-org/pacioli/issues/41
