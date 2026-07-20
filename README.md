@@ -3,7 +3,7 @@
 From Greek _déon_, "that which is binding" — the root of _deontic_. A small
 language and static checker for **accounting judgments and their consequences**,
 sitting between curated judgment prose (OKF) and a verified mechanical core (the
-[Pacioli](https://github.com/ojhermann/pacioli) Lean library). It captures rules
+[Pacioli](https://github.com/ojhermann-org/pacioli) Lean library). It captures rules
 of the shape "you must do X when Y" — obligations, permissions, prohibitions — in
 a form that is **consistency-checkable, traceable, and auditable**, while every
 actual judgment stays an explicit, cited hole rather than a hardcoded policy.

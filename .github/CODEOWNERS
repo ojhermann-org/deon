@@ -1,0 +1,4 @@
+# The repository owner is the required reviewer for every change. GitHub
+# automatically requests review from the owner on every pull request, so
+# contributors do not need to add them by hand.
+* @ojhermann
