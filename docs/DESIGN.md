@@ -140,6 +140,8 @@ abstract grammar in two deliberate ways:
 
 1. **Leak detection.** No `judgment`/`election` predicate is evaluated as
    `mechanical`; every `mechanical` test's inputs are declared and colored.
+   _Implemented_ as the `deon-check` crate (LEAK-1/2/3); run it with
+   `nix run . -- examples/`.
 2. **Grounding completeness.** Every `judgment` hole has a `grounds` ref that
    resolves to a real OKF concept anchor, with a declared source type.
 3. **Coverage.** The antecedent branches partition the subject's relevant states;

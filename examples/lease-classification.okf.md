@@ -24,7 +24,7 @@ norms:
                 inputs: { economic-life: { color: judgment, source: world-fact } }
           - pv-substantially-all:
               mechanical:
-                test: "pv(payments, rate) / fair-value >= threshold"
+                test: "pv(lease.payments, rate) / fair-value >= threshold"
                 threshold: { value: 0.90, regime: ASC-840, color: mechanical }
                 inputs:
                   fair-value: { color: judgment, source: world-fact }

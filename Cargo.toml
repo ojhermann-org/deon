@@ -1,0 +1,20 @@
+[package]
+name = "deon-check"
+version = "0.1.0"
+edition = "2021"
+description = "Static leak-detection checker for deon colored deontic norms (DESIGN §4, check 1)"
+license = "Apache-2.0"
+repository = "https://github.com/ojhermann-org/deon"
+publish = false
+
+[dependencies]
+# serde_yaml is archived upstream but stable and battle-tested; we only ever
+# parse trusted local .okf.md frontmatter, and it sits behind the thin `parse`
+# layer so it can be swapped without touching the checker. Named in issue #2.
+serde_yaml = "0.9"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

@@ -18,11 +18,47 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
+      # The Rust `deon-check` binary (the leak-detection static check, DESIGN §4
+      # check 1) built hermetically: `cargo fmt --check` + `cargo clippy
+      # -D warnings` gate the build, and `cargo test` (buildRustPackage's default
+      # checkPhase) runs the acceptance suite (seed norms clean; leaky fixture →
+      # 3 located leaks). Deps are vendored from Cargo.lock, so it needs no
+      # network. Exposed as both `packages.default` and a flake check, so
+      # `nix flake check` — the one required CI status — covers Rust too.
+      deonCheckFor =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        pkgs.rustPlatform.buildRustPackage {
+          pname = "deon-check";
+          version = "0.1.0";
+          # Only the crate inputs — keeps the build pure and off target/ etc.
+          # examples/ and tests/ are included: the acceptance tests read them.
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./Cargo.toml
+              ./Cargo.lock
+              ./src
+              ./tests
+              ./examples
+            ];
+          };
+          cargoLock.lockFile = ./Cargo.lock;
+          nativeBuildInputs = [
+            pkgs.clippy
+            pkgs.rustfmt
+          ];
+          preBuild = ''
+            cargo fmt --check
+            cargo clippy --all-targets -- -D warnings
+          '';
+        };
+
       # Fast, hermetic hygiene checks: Nix formatting/lint, markdown, and
-      # whitespace. This is deon's founding toolchain leg — it mirrors Pacioli's
-      # hygiene set *minus* the Lean/nix-proof gates (deon has no Lean yet). The
-      # Rust `deon-check` binary and its fmt/clippy/test gate join here when the
-      # checker lands; the Lean seam later still.
+      # whitespace. Mirrors Pacioli's hygiene set *minus* the Lean/nix-proof
+      # gates (deon has no Lean yet); the Lean seam joins later.
       hooksFor =
         system:
         git-hooks.lib.${system}.run {
@@ -59,8 +95,13 @@
         };
     in
     {
+      packages = forAllSystems (system: {
+        default = deonCheckFor system;
+      });
+
       checks = forAllSystems (system: {
         pre-commit = hooksFor system;
+        deon-check = deonCheckFor system;
       });
 
       devShells = forAllSystems (
@@ -72,7 +113,14 @@
         {
           default = pkgs.mkShell {
             inherit (hooks) shellHook;
-            buildInputs = hooks.enabledPackages;
+            # hygiene tools + the Rust toolchain for local `cargo` work (mkShell's
+            # stdenv provides the C compiler the build scripts link against).
+            buildInputs = hooks.enabledPackages ++ [
+              pkgs.cargo
+              pkgs.rustc
+              pkgs.clippy
+              pkgs.rustfmt
+            ];
           };
         }
       );
