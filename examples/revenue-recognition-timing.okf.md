@@ -59,7 +59,10 @@ coverage-note: >
 The cited judgment prose lives here, beside the norm block, as an OKF concept.
 This stub is a placeholder for that prose; in a real OKF bundle it would carry the
 full reasoning and citations that the `grounds:` refs above point into
-(`#ifrs15-35a`, `#ifrs15-38`, …).
+(`#ifrs15-35a`, `#ifrs15-38`, …). Until that bundle exists those anchors are
+dangling, so the grounding-completeness check (DESIGN §4, check 2) is _expected_
+to flag every hole here — this seed is authored to pass the leak-detection check
+(check 1) clean, not the grounding one.
 
 This file demonstrates the deon convention: **the formal norm is frontmatter; the
 authoritative judgment is the prose beneath it.** If they ever disagree, the prose

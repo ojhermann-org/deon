@@ -14,7 +14,7 @@ norms:
       is-finance-lease:                # mechanical any-of over mixed atoms
         any-of:
           - { predicate: ownership-transfers, color: mechanical,
-              input: lease.transfers-ownership }
+              test: lease.transfers-ownership }
           - { predicate: purchase-option-certain, color: judgment,
               grounds: { ref: "#option", source: standard-criterion } }
           - term-major-part:
@@ -58,7 +58,10 @@ regime-note: >
 
 The cited judgment prose lives here, beside the norm block. This stub stands in
 for the OKF concept that the `grounds:` refs point into (`#option`,
-`#specialized`, `#low-value`).
+`#specialized`, `#low-value`). Because that OKF bundle does not exist yet, those
+anchors are dangling, so the grounding-completeness check (DESIGN §4, check 2) is
+_expected_ to flag every hole here until the bundle lands — the leak-detection
+check (check 1) is the one this seed is authored to pass clean.
 
 Note the two regime-scoped thresholds (`0.75 @ASC-840`, `0.90 @ASC-840`,
 `12mo @IFRS-16`): each is a **colored artifact**, not an inert number — the
