@@ -2,7 +2,8 @@
 
 From Greek _déon_, "that which is binding" — the root of _deontic_. A small
 language and static checker for **accounting judgments and their consequences**,
-sitting between curated judgment prose (OKF) and a verified mechanical core (the
+sitting between curated judgment prose (the **Open Knowledge Format**,
+[OKF][okf-spec]) and a verified mechanical core (the
 [Pacioli](https://github.com/ojhermann-org/pacioli) Lean library). It captures rules
 of the shape "you must do X when Y" — obligations, permissions, prohibitions — in
 a form that is **consistency-checkable, traceable, and auditable**, while every
@@ -17,9 +18,9 @@ bundles and checks them. It ships a small seed set of worked examples
 ([`examples/`](examples/) — revenue-recognition timing, lease classification)
 until an OKF bundle exists to hold them.
 
-This mirrors the split its sibling **Pacioli** keeps on the mechanical side:
-Pacioli owns the verified _machinery_, not the accounting data; deon owns the
-_norm language_, not the norms.
+This mirrors [the split][pacioli-split] its sibling **Pacioli** keeps on the
+mechanical side: Pacioli owns the verified _machinery_, not the accounting data;
+deon owns the _norm language_, not the norms.
 
 ## Why it exists
 
@@ -42,7 +43,7 @@ deon _assists_ Lean + OKF; it adds no new authority over either.
 Every predicate is **colored** — `mechanical` (decidable from seam data),
 `judgment` (open-textured, must cite where it grounds), or `election` (a
 discretionary entity choice). The checker enforces the seam the way Lean enforces
-"policy never leaks into types": no judgment is ever silently evaluated
+["policy never leaks into types"][pacioli-seam]: no judgment is ever silently evaluated
 mechanically, and every judgment hole carries a citation. A standard's logical
 _structure_ is mechanical; its _criteria_ are judgment — and deon lets mechanical
 connectives compose over judgment atoms so both live in one rule.
@@ -53,9 +54,9 @@ two worked spikes that this design rests on: **[docs/spikes/](docs/spikes/)**.
 ## Bounded on both ends
 
 - **Top** grounds in OKF prose + citations; prose stays authoritative.
-- **Bottom** grounds in the Pacioli Lean seam: every well-formed norm terminates
-  in a commitment about plain data the kernel checks. A norm that never
-  constrains seam data is malformed.
+- **Bottom** grounds in the [Pacioli Lean seam][pacioli-seam]: every well-formed
+  norm terminates in a commitment about plain data the kernel checks. A norm that
+  never constrains seam data is malformed.
 
 ## Scope discipline (borrowed from Pacioli, deliberately)
 
@@ -76,3 +77,7 @@ Exploratory. The design rests on two converging paper spikes
 ([`docs/DESIGN.md`](docs/DESIGN.md)); [`examples/`](examples/) holds the two
 concepts as seed norm files. No execution engine and no neural components are
 built yet — see the design note's Non-goals.
+
+[okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+[pacioli-split]: https://github.com/ojhermann-org/pacioli#why-this-split
+[pacioli-seam]: https://github.com/ojhermann-org/pacioli#the-interface-contract-the-crux
