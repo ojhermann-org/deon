@@ -52,12 +52,19 @@ A **norm** is:
 
 ```
 norm        := { id, regime, concept-ref, subject, antecedent, deontic,
-                 commitment, defeated-by* }
+                 commitment, otherwise?, defeated-by* }
 regime      := standard/jurisdiction scope (e.g. ASC-840, IFRS-16)   # norms are regime-indexed
 concept-ref := link to the governing OKF concept
 subject     := the record-state the obligation ranges over (a PO, a lease, ...)
 deontic     := obligation | permission | prohibition
+otherwise   := { commitment }   # residual branch: the commitment taken when the antecedent does NOT hold
 ```
+
+`regime` and `concept-ref` are **inherited** from the OKF document's frontmatter
+(`regime:`, `concept:`) unless a norm sets its own — e.g. the lease document is
+`ASC-840` but its `short-term-low-value-election` norm overrides to `IFRS-16`. A
+norm without an explicit `otherwise` makes no commitment when its antecedent
+fails (that silence is what the coverage check in §4 reasons about).
 
 **Predicates** (the antecedent is built from these) are _colored_:
 
@@ -108,8 +115,26 @@ Lean's, not the norm's.
 **Priority / defeat** is itself colored:
 
 ```
-defeat      := { defeats: norm-id, binds: predicate }   # binds may be judgment
+defeat      := { defeats: norm-id, binds: predicate, modifies?: <field := adjusted value> }   # binds may be judgment
 ```
+
+**Concrete rendering (how §3 maps to `examples/`).** §3 is _abstract_ syntax; the
+seed norms render it as OKF frontmatter YAML. Each lives in a `<concept>.okf.md`
+file — OKF-format markdown: the norm block is the YAML frontmatter, the
+authoritative cited prose is the body beneath it. The field names differ from the
+abstract grammar in two deliberate ways:
+
+- A commitment's `deontic-target` is written as the **domain field(s) it sets** —
+  `classification: finance`, `timing: over-time`, `capitalize: false`,
+  `adjustment: prior-period` — rather than the literal key `deontic-target`;
+  the structural keys `method`, `estimate-inputs`, and `modifies` keep their
+  grammar names where they appear (e.g. `method: retrospective`).
+- A `defeat` appears in **either** of two shapes: as a **standalone** node
+  (`{ defeats, binds, modifies? }`, e.g. `var-consideration-constraint`
+  modifying the defeated norm's commitment), **or** as a **full norm carrying a
+  `defeats:` field** with its own `antecedent`/`commitment` (e.g.
+  `short-term-low-value-election`). Both are the `defeat` node above; the second
+  just co-locates it with a norm that also stands on its own.
 
 ## 4. Static checks (representational; no execution)
 
@@ -119,7 +144,11 @@ defeat      := { defeats: norm-id, binds: predicate }   # binds may be judgment
    resolves to a real OKF concept anchor, with a declared source type.
 3. **Coverage.** The antecedent branches partition the subject's relevant states;
    flag implicit gaps (spike 1 found "PO not yet satisfied → recognize nothing"
-   was unrepresented).
+   was unrepresented). An `otherwise` branch makes the split _syntactically_
+   total (antecedent-holds → `commitment`, else → `otherwise.commitment`), but
+   coverage still checks that this binary matches the subject's real states — the
+   "recognize nothing" third state is a gap an over-time/point-in-time `otherwise`
+   hides, not one it closes.
 4. **Conditional conflict.** When norm A `defeats` norm B via a judgment `binds`,
    report the conflict as _underdetermined until grounded_, not a static
    contradiction.
