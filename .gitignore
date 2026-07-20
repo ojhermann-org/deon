@@ -1,3 +1,7 @@
+# Rust
+/target/
+/.cargo-home/
+
 # Nix / direnv
 /.direnv/
 /result
