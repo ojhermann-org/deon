@@ -1,5 +1,5 @@
 {
-  "name": "deon",
+  "name": "okf-tools",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [
