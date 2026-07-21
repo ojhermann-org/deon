@@ -6,7 +6,7 @@
 
 use std::path::PathBuf;
 
-use deon_check::{check, check_with_okf, Finding, Okf, Rule};
+use deon_check::{check, check_bundle, check_with_okf, Finding, Okf, Rule};
 
 fn manifest(rel: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel)
@@ -123,5 +123,60 @@ fn uncovered_fixture_trips_both_rules() {
             .any(|f| f.path.starts_with("norms[0]") || f.path.starts_with("norms[3]")),
         "a covering norm and a claimless norm must both stay silent:\n{}",
         render(&c)
+    );
+}
+
+/// The bundle is held to the standard it enforces (issue #18): a state
+/// declaration must name a state and cite where it grounds. The well-formed
+/// declaration stays silent; each defect is located in the concept file.
+#[test]
+fn bundle_state_declarations_are_grounded() {
+    let okf = Okf::load(&manifest("tests/fixtures/okf-bad-states")).expect("bundle loads");
+    let findings = check_bundle(&okf);
+    let rendered = findings
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    assert_eq!(findings.len(), 4, "expected 4 findings, got:\n{rendered}");
+    for (i, rule) in [
+        (1, Rule::MissingCitation),
+        (2, Rule::InvalidSource),
+        (3, Rule::DanglingAnchor),
+        (4, Rule::MalformedState),
+    ] {
+        let f = findings
+            .iter()
+            .find(|f| f.path == format!("subjects.thing.states[{i}]"))
+            .unwrap_or_else(|| panic!("no finding at states[{i}] in:\n{rendered}"));
+        assert_eq!(f.rule, rule, "at states[{i}]");
+        assert!(
+            f.file.ends_with("concepts.md"),
+            "located in the bundle: {}",
+            f.file
+        );
+    }
+
+    // The malformed declaration also vanishes from the state space — which is
+    // exactly why COVER-3 has to exist.
+    assert!(
+        !findings.iter().any(|f| f.path.ends_with("states[0]")),
+        "the well-formed declaration must stay silent:\n{rendered}"
+    );
+}
+
+/// The coverage bundle grounds its own state space, so checking it is clean.
+#[test]
+fn state_space_bundle_grounds_itself() {
+    let findings = check_bundle(&bundle());
+    assert!(
+        findings.is_empty(),
+        "the fixture bundle must ground its own claims, got:\n{}",
+        findings
+            .iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }

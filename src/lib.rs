@@ -65,6 +65,8 @@ pub enum Rule {
     UncoveredState,
     /// COVER-2: a `covers:` naming a state the subject does not declare.
     UndeclaredStateClaimed,
+    /// COVER-3: a bundle state declaration that names no state.
+    MalformedState,
     /// CONFLICT-1: a `defeats:` names no norm in the document.
     DanglingDefeat,
     /// CONFLICT-2: a collision whose resolving `binds` is a judgment hole.
@@ -90,6 +92,7 @@ impl Rule {
             Rule::CrossRegimeArtifact => "REGIME-2",
             Rule::UncoveredState => "COVER-1",
             Rule::UndeclaredStateClaimed => "COVER-2",
+            Rule::MalformedState => "COVER-3",
             Rule::DanglingDefeat => "CONFLICT-1",
             Rule::UnderdeterminedConflict => "CONFLICT-2",
             Rule::DeterminateConflict => "CONFLICT-3",
@@ -112,6 +115,7 @@ impl Rule {
             Rule::CrossRegimeArtifact => "cross-regime artifact",
             Rule::UncoveredState => "uncovered state",
             Rule::UndeclaredStateClaimed => "undeclared state claimed",
+            Rule::MalformedState => "malformed state declaration",
             Rule::DanglingDefeat => "dangling defeat",
             Rule::UnderdeterminedConflict => "underdetermined conflict",
             Rule::DeterminateConflict => "determinate conflict",
@@ -242,6 +246,17 @@ pub fn check_with_okf(file: &str, source: &str, okf: &Okf) -> Result<Vec<Finding
     ground::anchors(&doc, file, okf, &mut findings);
     cover::check(&doc, file, okf, &mut findings);
     Ok(findings)
+}
+
+/// Check the OKF bundle itself: every state declaration names a state and
+/// cites where it grounds (COVER-3 + GROUND-1/2/3). Run **once per bundle**,
+/// not once per norm file — a bundle is loaded once and read by every file, so
+/// per-file reporting would duplicate every finding. Findings are located in
+/// the concept file that declares them.
+pub fn check_bundle(okf: &Okf) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    cover::bundle(okf, &mut findings);
+    findings
 }
 
 /// Parse the YAML frontmatter of an `.okf.md` source into a value tree.

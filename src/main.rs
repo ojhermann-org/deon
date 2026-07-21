@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use deon_check::{check, check_with_okf, Okf};
+use deon_check::{check, check_bundle, check_with_okf, Okf};
 
 const USAGE: &str = "\
 deon-check — static checks for deon norms (DESIGN §4)
@@ -23,12 +23,13 @@ Options:
     --okf <bundle>  also run the bundle-backed checks against this OKF concept
                     bundle (a .md file or a directory of them): GROUND-3
                     (resolve grounds.ref anchors) and coverage (check the
-                    branches against the subject's declared state space)
+                    branches against the subject's declared state space). The
+                    bundle's own state declarations are checked too, once.
     --quiet         print findings only (suppress the per-file/summary lines)
     -h, --help      show this help
 
 Checks: leak detection (LEAK-1/2/3), grounding completeness (GROUND-1/2;
-GROUND-3 only with --okf), coverage (COVER-1/2, only with --okf), conditional
+GROUND-3 only with --okf), coverage (COVER-1/2/3, only with --okf), conditional
 conflict (CONFLICT-1/2/3), termination-at-seam (SEAM-1/2/3) and regime hygiene
 (REGIME-1/2).
 
@@ -98,6 +99,18 @@ fn main() -> ExitCode {
     }
 
     let mut total = 0usize;
+
+    // The bundle is checked once, before the norm files that read it: its state
+    // declarations are norm content, and a bundle that does not ground its own
+    // claims cannot be trusted to judge coverage in the files below.
+    if let Some(okf) = &okf {
+        let findings = check_bundle(okf);
+        for f in &findings {
+            println!("{f}");
+        }
+        total += findings.len();
+    }
+
     for file in &files {
         let display = file.display().to_string();
         let source = match std::fs::read_to_string(file) {

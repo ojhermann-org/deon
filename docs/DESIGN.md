@@ -193,7 +193,8 @@ abstract grammar in two deliberate ways:
    "recognize nothing" third state is a gap an over-time/point-in-time `otherwise`
    hides, not one it closes. _Implemented_ in `deon-check`: COVER-1 a declared
    state no branch of the norm claims; COVER-2 a `covers:` naming a state the
-   subject does not declare.
+   subject does not declare; COVER-3 a bundle state declaration that names no
+   state.
 
    The checker cannot know a subject's states — deriving them would be an
    evaluator (§9) or a hardcoded accounting fact (out of scope). So the **state
@@ -206,6 +207,12 @@ abstract grammar in two deliberate ways:
        states:
          - { id: not-yet-satisfied, grounds: { ref: "#ifrs15-31", source: standard-criterion } }
    ```
+
+   The declaration is itself a judgment about the standard, so it is held to
+   deon's rule for a judgment: it must cite. The bundle's own state declarations
+   are checked once per bundle — COVER-3 for a declaration naming no state
+   (which would otherwise drop out of the space silently, weakening every
+   COVER-1), and GROUND-1/2/3 for its citation.
 
    A branch claims a state with `covers:` — on the norm (the antecedent-holds
    branch), on `otherwise`, or on each `cases[i]`. **Coverage is opt-in per

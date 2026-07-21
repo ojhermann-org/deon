@@ -19,11 +19,15 @@
 //!       - { id: satisfied-over-time, grounds: { ref: "#ifrs15-35", source: standard-criterion } }
 //! ```
 //!
-//! A state may also be written as a bare string. Which states a subject has is
+//! A state may also be written as a bare string. That form still *counts* as a
+//! declaration — dropping it would quietly shrink the state space, which is the
+//! failure COVER-3 exists to catch — but it can carry no citation, so it always
+//! trips GROUND-1. Parse leniently, judge strictly. Which states a subject has is
 //! itself a judgment about the standard, so it is norm content and belongs here
-//! beside the prose — not in the checker, and not in a norm file. Their
-//! `grounds` are carried but not yet validated (GROUND runs over norm files);
-//! extending it to the bundle is follow-up work.
+//! beside the prose — not in the checker, and not in a norm file. Being a
+//! judgment, it must cite: each declaration is kept with *where* it was written
+//! and *how* it grounds, so coverage can hold the bundle to the same standard a
+//! norm file is held to (issue #18).
 //!
 //! Swap this module when the OKF spec lands; nothing else in the checker
 //! depends on the format.
@@ -40,6 +44,20 @@ use crate::{frontmatter, key_str, str_field};
 pub struct Okf {
     anchors: BTreeSet<String>,
     states: BTreeMap<String, BTreeSet<String>>,
+    declarations: Vec<StateDecl>,
+}
+
+/// One state declaration, as written: which concept file and subject it belongs
+/// to, the id it declares (absent if malformed), and its citation. Kept so the
+/// declaration can be checked, not merely read.
+#[derive(Debug, Clone)]
+pub(crate) struct StateDecl {
+    pub(crate) file: String,
+    pub(crate) subject: String,
+    pub(crate) index: usize,
+    pub(crate) id: Option<String>,
+    pub(crate) reference: Option<String>,
+    pub(crate) source: Option<String>,
 }
 
 impl Okf {
@@ -79,6 +97,11 @@ impl Okf {
     pub fn subjects(&self) -> usize {
         self.states.len()
     }
+
+    /// Every state declaration the bundle carries, in load order.
+    pub(crate) fn declarations(&self) -> &[StateDecl] {
+        &self.declarations
+    }
 }
 
 fn collect(path: &Path, out: &mut Okf) -> std::io::Result<()> {
@@ -91,8 +114,12 @@ fn collect(path: &Path, out: &mut Okf) -> std::io::Result<()> {
         for id in anchors_in(&text) {
             out.anchors.insert(id);
         }
-        for (subject, states) in states_in(&text) {
-            out.states.entry(subject).or_default().extend(states);
+        for decl in states_in(&text, &path.display().to_string()) {
+            let entry = out.states.entry(decl.subject.clone()).or_default();
+            if let Some(id) = &decl.id {
+                entry.insert(id.clone());
+            }
+            out.declarations.push(decl);
         }
     }
     Ok(())
@@ -102,7 +129,7 @@ fn collect(path: &Path, out: &mut Okf) -> std::io::Result<()> {
 /// file's frontmatter. A file with no frontmatter, no `subjects:`, or
 /// unparseable YAML simply declares no state spaces — the bundle format is
 /// provisional, so this never fails the load.
-fn states_in(text: &str) -> Vec<(String, BTreeSet<String>)> {
+fn states_in(text: &str, file: &str) -> Vec<StateDecl> {
     let Some(front) = frontmatter(text) else {
         return Vec::new();
     };
@@ -112,16 +139,24 @@ fn states_in(text: &str) -> Vec<(String, BTreeSet<String>)> {
     let Some(Value::Mapping(subjects)) = doc.get("subjects") else {
         return Vec::new();
     };
-    subjects
-        .iter()
-        .map(|(name, body)| {
-            let states = match body.get("states") {
-                Some(Value::Sequence(s)) => s.iter().filter_map(state_id).collect(),
-                _ => BTreeSet::new(),
-            };
-            (key_str(name), states)
-        })
-        .collect()
+    let mut out = Vec::new();
+    for (name, body) in subjects {
+        let Some(Value::Sequence(states)) = body.get("states") else {
+            continue;
+        };
+        for (index, state) in states.iter().enumerate() {
+            let grounds = state.get("grounds");
+            out.push(StateDecl {
+                file: file.to_string(),
+                subject: key_str(name),
+                index,
+                id: state_id(state),
+                reference: grounds.and_then(|g| str_field(g, "ref")),
+                source: grounds.and_then(|g| str_field(g, "source")),
+            });
+        }
+    }
+    out
 }
 
 /// A state is either `{ id: <name>, grounds: ... }` or a bare `<name>`.
