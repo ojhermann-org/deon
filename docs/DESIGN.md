@@ -81,9 +81,24 @@ the language must be able to state the fix, not merely have the gap named.
 Every check that reasons about a norm's commitments treats a case as a branch:
 termination (§4 check 5) requires each case to carry its own commitment, and
 conditional conflict (§4 check 4) collides against a middle case as readily as
-against a residual. Write a norm in **one** form or the other; mixing them is
-redundant rather than unsound (both sets of branches are walked), so the checker
-does not currently police it.
+against a residual.
+
+The forms are **alternatives, not layers**: write a norm in one or the other.
+Mixing them leaves the path to a commitment undefined, in three distinct ways,
+and the checker flags all three (SEAM-3):
+
+- a stray `antecedent` beside `cases:` is read by no check for branch structure,
+  so it is dead text that still passes leak detection and grounding — while an
+  author would reasonably read it as a **guard** ("the norm applies when this
+  holds; within that, split into cases"). That is a plausible future meaning,
+  deliberately _not_ defined here: a guard interacts with coverage (§4 check 3),
+  which would have to decide whether cases must cover the subject's states or
+  only the states inside the guard. Better to reject the shape now and define it
+  when check 3 forces the question;
+- an `otherwise` beside a `when`-less case gives the norm **two** mutually
+  exclusive residuals, and which takes effect is unstated;
+- a top-level `commitment` beside `cases:` reads as unconditional, contradicting
+  the split.
 
 **Predicates** (the antecedent is built from these) are _colored_:
 
@@ -189,7 +204,9 @@ abstract grammar in two deliberate ways:
 5. **Termination-at-seam.** Every norm's obligation reaches a `commitment` about
    plain data; flag any that don't. _Implemented_ in `deon-check` (SEAM-1 a norm
    with neither a `commitment` nor a `modifies`; SEAM-2 an empty commitment or an
-   `otherwise` residual branch that carries none).
+   `otherwise` residual branch that carries none; SEAM-3 a norm mixing the
+   binary and n-ary branch forms of §3, whose path to a commitment is then
+   undefined).
 6. **Regime hygiene.** A norm applies only within its `regime`; flag facts
    evaluated against a norm whose regime doesn't apply (e.g. lessee
    classification under IFRS-16 — the norm doesn't exist there). The

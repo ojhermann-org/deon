@@ -15,6 +15,16 @@
 //!   but empty, or an `otherwise` residual branch — or a `cases:` branch — that
 //!   carries no commitment: a branch that constrains no plain data.
 //!
+//! - **SEAM-3 — mixed branch forms.** A norm that writes both the binary form
+//!   (`antecedent` / `commitment` / `otherwise`) and the n-ary `cases:` form.
+//!   The path to its commitment is then undefined, in three different ways:
+//!   a stray `antecedent` beside `cases:` is read by nothing, so it is dead
+//!   text that still passes LEAK and GROUND (an author would reasonably read it
+//!   as a guard — a meaning §3 has not defined); `otherwise` beside a
+//!   `when`-less case gives the norm two mutually exclusive residuals; and a
+//!   top-level `commitment` beside `cases:` reads as unconditional, which
+//!   contradicts splitting at all.
+//!
 //! Both branch forms of DESIGN §3 are checked: a norm written in the n-ary
 //! `cases:` form reaches the seam through its cases, and each case is held to
 //! the same standard as a residual `otherwise`.
@@ -35,6 +45,32 @@ pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
         let commitment = norm.get("commitment");
         let modifies = norm.get("modifies");
         let cases = cases(norm);
+
+        // The two branch forms are alternatives, not layers: a norm written in
+        // both has no well-defined path to its commitment (DESIGN §3).
+        if norm.get("cases").is_some() {
+            let mixed: Vec<&str> = ["antecedent", "commitment", "otherwise"]
+                .into_iter()
+                .filter(|k| norm.get(*k).is_some())
+                .collect();
+            if !mixed.is_empty() {
+                out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::MixedBranchForms,
+                    format!(
+                        "norm carries `cases:` alongside the binary form ({}) — the two are \
+                         alternatives, not layers, so the path to its commitment is \
+                         undefined; write one form or the other (DESIGN §3)",
+                        mixed
+                            .iter()
+                            .map(|k| format!("`{k}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                ));
+            }
+        }
 
         if commitment.is_none() && modifies.is_none() && cases.is_empty() {
             out.push(Finding::new(
