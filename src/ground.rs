@@ -22,7 +22,7 @@
 
 use serde_yaml::Value;
 
-use crate::{aggregation, is_judgment_color, key_str, Finding, Okf, Rule, SOURCE_TYPES};
+use crate::{aggregation, is_judgment_color, key_str, str_field, Finding, Okf, Rule, SOURCE_TYPES};
 
 /// What kind of grounding a node needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,13 +150,5 @@ fn walk(v: &Value, path: String, out: &mut Vec<Node>) {
             }
         }
         _ => {}
-    }
-}
-
-/// The string value at `map[key]`, if `map` is a mapping with a string there.
-fn str_field(map: &Value, key: &str) -> Option<String> {
-    match map.get(key) {
-        Some(Value::String(s)) => Some(s.clone()),
-        _ => None,
     }
 }
