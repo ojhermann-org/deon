@@ -7,8 +7,10 @@
 //!   (LEAK-1/2/3).
 //! - [`ground`] — check 2, the judgment edge: every judgment *hole* carries a
 //!   citation (GROUND-1/2/3).
+//! - [`seam`] — check 5, the bottom edge: every norm terminates in a commitment
+//!   about plain data (SEAM-1/2).
 //!
-//! The two together enforce deon's core invariant — "no judgment is ever
+//! Checks 1 and 2 together enforce deon's core invariant — "no judgment is ever
 //! silently evaluated mechanically, *and* every judgment hole carries a
 //! citation."
 
@@ -16,6 +18,7 @@ mod expr;
 mod ground;
 mod leak;
 mod okf;
+mod seam;
 
 pub use okf::Okf;
 
@@ -38,6 +41,10 @@ pub enum Rule {
     InvalidSource,
     /// GROUND-3: a citation's `ref` does not resolve in the OKF bundle.
     DanglingAnchor,
+    /// SEAM-1: a norm reaches no commitment about plain data.
+    UnreachedSeam,
+    /// SEAM-2: a commitment / residual branch constrains no plain data.
+    EmptyCommitment,
 }
 
 impl Rule {
@@ -50,6 +57,8 @@ impl Rule {
             Rule::MissingCitation => "GROUND-1",
             Rule::InvalidSource => "GROUND-2",
             Rule::DanglingAnchor => "GROUND-3",
+            Rule::UnreachedSeam => "SEAM-1",
+            Rule::EmptyCommitment => "SEAM-2",
         }
     }
 
@@ -62,6 +71,8 @@ impl Rule {
             Rule::MissingCitation => "missing citation",
             Rule::InvalidSource => "invalid source type",
             Rule::DanglingAnchor => "dangling anchor",
+            Rule::UnreachedSeam => "unreached seam",
+            Rule::EmptyCommitment => "empty commitment",
         }
     }
 }
@@ -149,6 +160,7 @@ pub fn check(file: &str, source: &str) -> Result<Vec<Finding>, String> {
     let mut findings = Vec::new();
     leak::check(&doc, file, &mut findings);
     ground::structural(&doc, file, &mut findings);
+    seam::check(&doc, file, &mut findings);
     Ok(findings)
 }
 

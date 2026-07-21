@@ -162,7 +162,9 @@ abstract grammar in two deliberate ways:
    report the conflict as _underdetermined until grounded_, not a static
    contradiction.
 5. **Termination-at-seam.** Every norm's obligation reaches a `commitment` about
-   plain data; flag any that don't.
+   plain data; flag any that don't. _Implemented_ in `deon-check` (SEAM-1 a norm
+   with neither a `commitment` nor a `modifies`; SEAM-2 an empty commitment or an
+   `otherwise` residual branch that carries none).
 6. **Regime hygiene.** A norm applies only within its `regime`; flag facts
    evaluated against a norm whose regime doesn't apply (e.g. lessee
    classification under IFRS-16 — the norm doesn't exist there).
