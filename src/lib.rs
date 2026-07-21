@@ -11,11 +11,15 @@
 //!   about plain data (SEAM-1/2).
 //! - [`regime`] — check 6: a norm's mechanized artifacts belong to its regime
 //!   (REGIME-1/2).
+//! - [`conflict`] — check 4, the priority edge: a defeat that collides is
+//!   reported three-valued — underdetermined while its `binds` is a judgment
+//!   hole (CONFLICT-1/2/3).
 //!
 //! Checks 1 and 2 together enforce deon's core invariant — "no judgment is ever
 //! silently evaluated mechanically, *and* every judgment hole carries a
 //! citation."
 
+mod conflict;
 mod expr;
 mod ground;
 mod leak;
@@ -52,6 +56,12 @@ pub enum Rule {
     UndeterminedRegime,
     /// REGIME-2: a `@regime`-stamped artifact does not match its norm's regime.
     CrossRegimeArtifact,
+    /// CONFLICT-1: a `defeats:` names no norm in the document.
+    DanglingDefeat,
+    /// CONFLICT-2: a collision whose resolving `binds` is a judgment hole.
+    UnderdeterminedConflict,
+    /// CONFLICT-3: a collision whose resolving `binds` is mechanical.
+    DeterminateConflict,
 }
 
 impl Rule {
@@ -68,6 +78,9 @@ impl Rule {
             Rule::EmptyCommitment => "SEAM-2",
             Rule::UndeterminedRegime => "REGIME-1",
             Rule::CrossRegimeArtifact => "REGIME-2",
+            Rule::DanglingDefeat => "CONFLICT-1",
+            Rule::UnderdeterminedConflict => "CONFLICT-2",
+            Rule::DeterminateConflict => "CONFLICT-3",
         }
     }
 
@@ -84,6 +97,9 @@ impl Rule {
             Rule::EmptyCommitment => "empty commitment",
             Rule::UndeterminedRegime => "undetermined regime",
             Rule::CrossRegimeArtifact => "cross-regime artifact",
+            Rule::DanglingDefeat => "dangling defeat",
+            Rule::UnderdeterminedConflict => "underdetermined conflict",
+            Rule::DeterminateConflict => "determinate conflict",
         }
     }
 }
@@ -181,6 +197,7 @@ pub fn check(file: &str, source: &str) -> Result<Vec<Finding>, String> {
     ground::structural(&doc, file, &mut findings);
     seam::check(&doc, file, &mut findings);
     regime::check(&doc, file, &mut findings);
+    conflict::check(&doc, file, &mut findings);
     Ok(findings)
 }
 

@@ -25,8 +25,9 @@ Options:
     --quiet         print findings only (suppress the per-file/summary lines)
     -h, --help      show this help
 
-Checks: leak detection (LEAK-1/2/3) and grounding completeness (GROUND-1/2;
-GROUND-3 only with --okf).
+Checks: leak detection (LEAK-1/2/3), grounding completeness (GROUND-1/2;
+GROUND-3 only with --okf), conditional conflict (CONFLICT-1/2/3),
+termination-at-seam (SEAM-1/2) and regime hygiene (REGIME-1/2).
 
 Exit codes:
     0  clean (no findings)   1  findings   2  usage / IO / parse error";
