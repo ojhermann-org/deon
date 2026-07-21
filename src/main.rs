@@ -1,40 +1,56 @@
-//! `deon-check` — run the leak-detection static check over `.okf.md` norm files.
+//! `deon-check` — run deon's static checks over `.okf.md` norm files.
 //!
-//! Usage: `deon-check [--quiet] <path>...`
+//! Usage: `deon-check [--quiet] [--okf <bundle>] <path>...`
 //!   Each path is a `.okf.md` file or a directory searched recursively for them.
-//! Exit: 0 = clean, 1 = leaks found, 2 = usage/IO/parse error.
+//!   `--okf` enables GROUND-3 (anchor resolution) against an OKF concept bundle.
+//! Exit: 0 = clean, 1 = findings, 2 = usage/IO/parse error.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use deon_check::check;
+use deon_check::{check, check_anchors, Okf};
 
 const USAGE: &str = "\
-deon-check — leak-detection static check for deon norms (DESIGN §4, check 1)
+deon-check — static checks for deon norms (DESIGN §4)
 
 Usage:
-    deon-check [--quiet] <path>...
+    deon-check [--quiet] [--okf <bundle>] <path>...
 
 Arguments:
-    <path>       a .okf.md file, or a directory searched recursively for them
+    <path>          a .okf.md file, or a directory searched recursively for them
 
 Options:
-    --quiet      print findings only (suppress the per-file/summary lines)
-    -h, --help   show this help
+    --okf <bundle>  also run GROUND-3: resolve grounds.ref anchors against this
+                    OKF concept bundle (a .md file or a directory of them)
+    --quiet         print findings only (suppress the per-file/summary lines)
+    -h, --help      show this help
+
+Checks: leak detection (LEAK-1/2/3) and grounding completeness (GROUND-1/2;
+GROUND-3 only with --okf).
 
 Exit codes:
-    0  clean (no leaks)      1  leaks found      2  usage / IO / parse error";
+    0  clean (no findings)   1  findings   2  usage / IO / parse error";
 
 fn main() -> ExitCode {
     let mut quiet = false;
+    let mut okf_path: Option<String> = None;
     let mut paths: Vec<String> = Vec::new();
-    for arg in std::env::args().skip(1) {
+
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
         match arg.as_str() {
             "-h" | "--help" => {
                 println!("{USAGE}");
                 return ExitCode::SUCCESS;
             }
             "--quiet" => quiet = true,
+            "--okf" => match args.next() {
+                Some(p) => okf_path = Some(p),
+                None => {
+                    eprintln!("error: --okf needs a path argument");
+                    return ExitCode::from(2);
+                }
+            },
             _ => paths.push(arg),
         }
     }
@@ -42,6 +58,22 @@ fn main() -> ExitCode {
         eprintln!("{USAGE}");
         return ExitCode::from(2);
     }
+
+    let okf = match &okf_path {
+        Some(p) => match Okf::load(Path::new(p)) {
+            Ok(o) => {
+                if !quiet {
+                    eprintln!("okf: {} anchor(s) from {p}", o.len());
+                }
+                Some(o)
+            }
+            Err(e) => {
+                eprintln!("error: --okf {p}: {e}");
+                return ExitCode::from(2);
+            }
+        },
+        None => None,
+    };
 
     let mut files = Vec::new();
     for p in &paths {
@@ -67,29 +99,42 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
         };
-        match check(&display, &source) {
-            Ok(findings) => {
-                for f in &findings {
-                    println!("{f}");
-                }
-                total += findings.len();
-                if !quiet && findings.is_empty() {
-                    eprintln!("ok: {display}");
-                }
-            }
+        let mut findings = match check(&display, &source) {
+            Ok(f) => f,
             Err(e) => {
                 eprintln!("error: {display}: {e}");
                 return ExitCode::from(2);
             }
+        };
+        if let Some(okf) = &okf {
+            match check_anchors(&display, &source, okf) {
+                Ok(f) => findings.extend(f),
+                Err(e) => {
+                    eprintln!("error: {display}: {e}");
+                    return ExitCode::from(2);
+                }
+            }
+        }
+        for f in &findings {
+            println!("{f}");
+        }
+        total += findings.len();
+        if !quiet && findings.is_empty() {
+            eprintln!("ok: {display}");
         }
     }
 
-    if quiet {
-        // findings already on stdout; nothing else
-    } else if total == 0 {
-        eprintln!("clean: 0 leaks in {} file(s)", files.len());
-    } else {
-        eprintln!("{total} leak(s) in {} file(s)", files.len());
+    if !quiet {
+        let ground3 = if okf.is_some() {
+            ""
+        } else {
+            " (GROUND-3 skipped — pass --okf to resolve anchors)"
+        };
+        if total == 0 {
+            eprintln!("clean: 0 findings in {} file(s){ground3}", files.len());
+        } else {
+            eprintln!("{total} finding(s) in {} file(s){ground3}", files.len());
+        }
     }
 
     if total == 0 {

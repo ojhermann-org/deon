@@ -144,6 +144,13 @@ abstract grammar in two deliberate ways:
    `nix run . -- examples/`.
 2. **Grounding completeness.** Every `judgment` hole has a `grounds` ref that
    resolves to a real OKF concept anchor, with a declared source type.
+   _Implemented_ in `deon-check` (GROUND-1/2 always; GROUND-3 anchor resolution
+   under `--okf <bundle>`). A hole is a **criterion** — a judgment/election
+   predicate, threshold, `judgment-aggregation`, `binds`, or commitment
+   `method`/`measure` — which resolves to concept prose and so needs a `ref`. A
+   judgment-colored **input** to a mechanical test is a _value_ (an estimate): it
+   resolves to runtime evidence, not norm-time prose, so it is grounded by its
+   `source` type alone and needs no `ref` (issue #10).
 3. **Coverage.** The antecedent branches partition the subject's relevant states;
    flag implicit gaps (spike 1 found "PO not yet satisfied → recognize nothing"
    was unrepresented). An `otherwise` branch makes the split _syntactically_

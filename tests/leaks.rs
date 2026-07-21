@@ -6,14 +6,15 @@
 
 use std::path::PathBuf;
 
-use deon_check::{check, Leak};
+use deon_check::{check, Rule};
 
 fn read(rel: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
 }
 
-/// Green case: every seed norm is authored honestly and must be clean.
+/// Green case: every seed norm is authored honestly and must be clean across
+/// all always-on checks (leak + grounding GROUND-1/2).
 #[test]
 fn seed_norms_are_clean() {
     for seed in [
@@ -23,7 +24,7 @@ fn seed_norms_are_clean() {
         let findings = check(seed, &read(seed)).expect("seed parses");
         assert!(
             findings.is_empty(),
-            "expected 0 leaks in {seed}, got {}:\n{}",
+            "expected 0 findings in {seed}, got {}:\n{}",
             findings.len(),
             findings
                 .iter()
@@ -54,12 +55,12 @@ fn leaky_fixture_trips_each_rule_once() {
 
     // Exactly one of each kind.
     for kind in [
-        Leak::JudgmentComputed,
-        Leak::UndeclaredInput,
-        Leak::FakedAggregation,
+        Rule::JudgmentComputed,
+        Rule::UndeclaredInput,
+        Rule::FakedAggregation,
     ] {
         assert_eq!(
-            findings.iter().filter(|f| f.leak == kind).count(),
+            findings.iter().filter(|f| f.rule == kind).count(),
             1,
             "expected exactly one {} finding",
             kind.code()
@@ -67,20 +68,20 @@ fn leaky_fixture_trips_each_rule_once() {
     }
 
     // Each finding is located at (a path under) the norm that caused it.
-    let at = |kind: Leak| findings.iter().find(|f| f.leak == kind).unwrap();
+    let at = |kind: Rule| findings.iter().find(|f| f.rule == kind).unwrap();
     assert!(
-        at(Leak::JudgmentComputed)
+        at(Rule::JudgmentComputed)
             .path
             .contains("leak1-judgment-computed")
-            || at(Leak::JudgmentComputed).path.starts_with("norms[0]")
+            || at(Rule::JudgmentComputed).path.starts_with("norms[0]")
     );
-    assert!(at(Leak::UndeclaredInput).path.starts_with("norms[1]"));
-    assert!(at(Leak::FakedAggregation).path.starts_with("norms[2]"));
+    assert!(at(Rule::UndeclaredInput).path.starts_with("norms[1]"));
+    assert!(at(Rule::FakedAggregation).path.starts_with("norms[2]"));
 
     // The judgment-computed leak names the offending judgment predicate.
-    assert!(at(Leak::JudgmentComputed).detail.contains("is-material"));
+    assert!(at(Rule::JudgmentComputed).detail.contains("is-material"));
     // The undeclared-input leak names the offending bare token.
-    assert!(at(Leak::UndeclaredInput).detail.contains("benchmark"));
+    assert!(at(Rule::UndeclaredInput).detail.contains("benchmark"));
 }
 
 /// A file without frontmatter is an error, not a silent pass.
