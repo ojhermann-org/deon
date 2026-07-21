@@ -137,6 +137,19 @@ predicate   := mechanical(test, inputs*)                 # decidable from seam d
   those inputs.
 - `judgment(grounds)` — `grounds` has a **source type**: `standard-criterion |
   world-fact | legal-fact | entity-election`.
+- `election(grounds)` is **not** a synonym for judgment, and the difference is
+  checked: an election is a discretionary _entity_ choice, so its citation
+  resolves to the entity's own policy — `source: entity-election`, enforced by
+  GROUND-2. A choice the standard makes for you is a judgment, however it is
+  labelled. Without this the three colors would be two wearing three names,
+  since every other call site treats `election` and `judgment` alike.
+
+  The converse is deliberately **not** checked, and is a live modelling
+  question: the lease seed's `low-value` is colored `judgment` but sourced
+  `entity-election`, because IFRS 16's exemption is an entity election whose
+  _threshold_ ("low value") is open-textured. Whether that is one node or two —
+  an election to apply the exemption, plus a judgment inside it — is a question
+  about the norm, not the language, so the checker leaves it to the author.
 
 **Connectives and aggregation:**
 

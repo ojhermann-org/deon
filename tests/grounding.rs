@@ -61,8 +61,8 @@ fn ungrounded_fixture_trips_structural_rules() {
 
     assert_eq!(
         g.len(),
-        2,
-        "expected exactly 2 structural grounding findings, got:\n{}",
+        3,
+        "expected exactly 3 structural grounding findings, got:\n{}",
         g.iter()
             .map(|f| f.to_string())
             .collect::<Vec<_>>()
@@ -73,6 +73,19 @@ fn ungrounded_fixture_trips_structural_rules() {
     assert!(g1.path.starts_with("norms[1]"), "GROUND-1 at {}", g1.path);
     assert!(g2.path.starts_with("norms[2]"), "GROUND-2 at {}", g2.path);
     assert!(g2.detail.contains("vibes"));
+
+    // An `election` must ground in entity policy — the one thing that makes the
+    // color distinct from `judgment` anywhere in the checker.
+    let election = g
+        .iter()
+        .find(|f| f.path.starts_with("norms[3]"))
+        .expect("GROUND-2 for the election grounded in the standard");
+    assert_eq!(election.rule, Rule::InvalidSource);
+    assert!(
+        election.detail.contains("entity-election"),
+        "{}",
+        election.detail
+    );
 }
 
 /// Red (with --okf): the well-formed-but-unresolvable ref trips GROUND-3, while
@@ -98,7 +111,7 @@ fn dangling_anchor_trips_only_under_okf() {
     );
     let f = anchors[0];
     assert_eq!(f.rule, Rule::DanglingAnchor);
-    assert!(f.path.starts_with("norms[3]"), "GROUND-3 at {}", f.path);
+    assert!(f.path.starts_with("norms[4]"), "GROUND-3 at {}", f.path);
     assert!(f.detail.contains("#does-not-exist"));
 }
 

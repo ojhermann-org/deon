@@ -37,6 +37,7 @@ enum Kind {
 struct Node {
     path: String,
     kind: Kind,
+    color: Option<String>,
     reference: Option<String>,
     source: Option<String>,
 }
@@ -66,6 +67,27 @@ pub(crate) fn structural(doc: &Value, file: &str, out: &mut Vec<Finding>) {
                     SOURCE_TYPES.join(" | ")
                 ),
             )),
+            // An election is a *discretionary entity choice*: DESIGN §3 types it
+            // `election(grounds: entity-policy)`, so its citation resolves to the
+            // entity's own policy, not to the standard's prose. This is what
+            // distinguishes the color from `judgment` — without it the checker
+            // would treat the two identically everywhere and the trichotomy
+            // would be a dichotomy wearing three names.
+            _ if node.color.as_deref() == Some("election")
+                && node.source.as_deref() != Some("entity-election") =>
+            {
+                out.push(Finding::new(
+                    file,
+                    &node.path,
+                    Rule::InvalidSource,
+                    format!(
+                        "an `election` grounds in entity policy, so its \
+                         `grounds.source` must be `entity-election`, not `{}` — a choice \
+                         the standard makes for you is a judgment, not an election",
+                        node.source.as_deref().unwrap_or("absent")
+                    ),
+                ))
+            }
             _ => {}
         }
     }
@@ -163,6 +185,7 @@ fn walk(v: &Value, path: String, out: &mut Vec<Node>) {
                 out.push(Node {
                     path: path.clone(),
                     kind: Kind::Criterion,
+                    color: str_field(v, "color"),
                     reference: grounds.and_then(|g| str_field(g, "ref")),
                     source: grounds.and_then(|g| str_field(g, "source")),
                 });
@@ -180,9 +203,11 @@ fn walk(v: &Value, path: String, out: &mut Vec<Node>) {
                 if seg == "inputs" {
                     if let Value::Mapping(inputs) = child {
                         for (name, spec) in inputs {
-                            if str_field(spec, "color").is_some_and(|c| is_judgment_color(&c)) {
+                            let color = str_field(spec, "color");
+                            if color.as_deref().is_some_and(is_judgment_color) {
                                 out.push(Node {
                                     path: format!("{child_path}.{}", key_str(name)),
+                                    color,
                                     kind: Kind::Input,
                                     reference: str_field(spec, "ref"),
                                     source: str_field(spec, "source"),
