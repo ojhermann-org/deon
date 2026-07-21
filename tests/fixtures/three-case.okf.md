@@ -15,7 +15,7 @@ norms:
         commitment: { timing: over-time }
       - when:
           all-of:
-            - { predicate: satisfied, color: mechanical, test: po.satisfied }
+            - { predicate: satisfied, color: mechanical, test: performance-obligation.satisfied }
         commitment: { timing: point-in-time }
       - commitment: { timing: none }  # residual: the `when`-less third state
 
@@ -25,11 +25,11 @@ norms:
     cases:
       - when:
           all-of:
-            - { predicate: a, color: mechanical, test: po.a }
+            - { predicate: a, color: mechanical, test: performance-obligation.a }
         commitment: { timing: over-time }
       - when:
           all-of:
-            - { predicate: b, color: mechanical, test: po.b }
+            - { predicate: b, color: mechanical, test: performance-obligation.b }
         note: no commitment on this case
       - commitment: { timing: none }
 
