@@ -36,6 +36,14 @@ norms:
           inputs: { benchmark: {} }
     commitment: { flag: true }
 
+  - id: n5-uncolored-method         # LEAK-4: says nothing about which side
+    subject: thing
+    deontic: obligation
+    antecedent:
+      all-of:
+        - { predicate: r, color: mechanical, test: thing.r }
+    commitment: { adjustment: prior-period, method: retrospective }
+
   - id: n4-uncited-aggregation      # LEAK-3 + GROUND-1: no `grounds` at all
     subject: thing
     deontic: obligation
@@ -64,6 +72,9 @@ from being entirely green.
   require "a subject field or a declared colored input"; now it checks.
 - `n3-uncolored-input` declares `benchmark` and says nothing about it. An entry
   that names no color is not a declaration.
+- `n5-uncolored-method` writes a bare `method: retrospective`. Whether a method
+  is an open choice or is prescribed by the standard is standard-relative
+  (spike 2, N1) — the checker cannot tell from the value, so the norm must say.
 - `n4-uncited-aggregation` omits `grounds`, which used to stop it from being
   recognized as an aggregation at all — invisible to GROUND-1, the rule that
   exists to demand the citation, *and* to LEAK-3, despite the formula.

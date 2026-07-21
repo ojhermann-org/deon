@@ -16,6 +16,13 @@
 //!   declaration.
 //! - **LEAK-3 — faked aggregation.** A `judgment-aggregation` node that also
 //!   carries a `test`/`formula` — a weighed judgment faked as mechanical.
+//! - **LEAK-4 — uncolored commitment field.** A commitment's `method`/`measure`
+//!   written without a color. Whether a method is an open choice or is
+//!   *prescribed* by the standard is itself standard-relative (spike 2, N1): the
+//!   progress measure in IFRS 15.39 is a judgment, while the retrospective
+//!   restatement IAS 8 requires for a material error is determined. The checker
+//!   cannot tell which from the value, so the norm must say — exactly as a
+//!   threshold does (`{ value: 0.75, regime: ASC-840, color: mechanical }`).
 //!
 //! **The boundary, stated plainly.** These rules verify that an author was
 //! *internally consistent* about the seam — that a name declared judgment is not
@@ -33,7 +40,7 @@ use std::collections::BTreeSet;
 use serde_yaml::{Mapping, Value};
 
 use crate::expr::tokenize;
-use crate::{aggregation, is_judgment_color, key_str, Finding, Rule};
+use crate::{aggregation, is_judgment_color, key_str, str_field, Finding, Rule};
 
 /// Words in a test expression that are not data references: the reserved
 /// `threshold` artifact and boolean connectives.
@@ -97,6 +104,7 @@ fn walk(
                 scan_test(test, &inputs, judgment, subject, file, &path, out);
                 scan_input_colors(m, file, &path, out);
             }
+            scan_commitment_colors(m, file, &path, out);
             if let Some(agg) = aggregation(m) {
                 if agg.contains_key("test") || agg.contains_key("formula") {
                     out.push(Finding::new(
@@ -173,6 +181,45 @@ fn declared_inputs(m: &Mapping) -> Vec<(String, Option<String>)> {
         out.push((name.clone(), color));
     }
     out
+}
+
+/// A commitment's `method`/`measure` must declare which side of the seam it
+/// falls on. Reached through the generic walk, so a residual `otherwise` and
+/// every `cases[i]` commitment are covered as well as the norm's own.
+fn scan_commitment_colors(m: &Mapping, file: &str, path: &str, out: &mut Vec<Finding>) {
+    let Some(Value::Mapping(commitment)) = m.get("commitment") else {
+        return;
+    };
+    for field in ["method", "measure"] {
+        let Some(value) = commitment.get(field) else {
+            continue;
+        };
+        let color = match value {
+            Value::Mapping(_) => str_field(value, "color"),
+            _ => None,
+        };
+        let declared = color
+            .as_deref()
+            .is_some_and(|c| c == "mechanical" || is_judgment_color(c));
+        if !declared {
+            out.push(Finding::new(
+                file,
+                &format!("{path}.commitment.{field}"),
+                Rule::UncoloredCommitmentField,
+                match color {
+                    Some(c) => format!(
+                        "commitment `{field}` declares color `{c}` — must be one of \
+                         mechanical | judgment | election"
+                    ),
+                    None => format!(
+                        "commitment `{field}` declares no color — whether a method is an \
+                         open choice or is prescribed by the standard is standard-relative \
+                         (spike 2, N1), so the norm must say which"
+                    ),
+                },
+            ));
+        }
+    }
 }
 
 /// Every declared input must carry one of the three colors. Listing a name

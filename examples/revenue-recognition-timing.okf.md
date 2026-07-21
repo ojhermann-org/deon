@@ -49,7 +49,13 @@ norms:
             grounds: { ref: "#ias8-error-vs-estimate", source: standard-criterion } }
         - { predicate: material, color: judgment,
             grounds: { ref: "materiality", source: standard-criterion } }
-    commitment: { adjustment: prior-period, method: retrospective }
+    commitment:
+      adjustment: prior-period
+      # IAS 8 *prescribes* retrospective restatement once the error branch is
+      # taken — the method is determined, not chosen, so it is colored
+      # mechanical (cf. a threshold: a constant the standard fixed). Contrast
+      # `measure` above, an open method choice under IFRS 15.39.
+      method: { value: retrospective, color: mechanical }
 
 coverage-note: >
   "Performance obligation not yet satisfied → recognize nothing" is a third state

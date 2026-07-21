@@ -45,6 +45,8 @@ pub enum Rule {
     UndeclaredInput,
     /// LEAK-3: a judgment-aggregation carries a formula/test.
     FakedAggregation,
+    /// LEAK-4: a commitment `method`/`measure` that declares no color.
+    UncoloredCommitmentField,
     /// GROUND-1: a judgment hole (a criterion) carries no citation.
     MissingCitation,
     /// GROUND-2: a citation's `source` type is absent or not one of the four.
@@ -86,6 +88,7 @@ impl Rule {
             Rule::JudgmentComputed => "LEAK-1",
             Rule::UndeclaredInput => "LEAK-2",
             Rule::FakedAggregation => "LEAK-3",
+            Rule::UncoloredCommitmentField => "LEAK-4",
             Rule::MissingCitation => "GROUND-1",
             Rule::InvalidSource => "GROUND-2",
             Rule::DanglingAnchor => "GROUND-3",
@@ -111,6 +114,7 @@ impl Rule {
             Rule::JudgmentComputed => "judgment computed",
             Rule::UndeclaredInput => "undeclared/uncolored input",
             Rule::FakedAggregation => "faked aggregation",
+            Rule::UncoloredCommitmentField => "uncolored commitment field",
             Rule::MissingCitation => "missing citation",
             Rule::InvalidSource => "invalid source type",
             Rule::DanglingAnchor => "dangling anchor",

@@ -100,6 +100,21 @@ and the checker flags all three (SEAM-3):
 - a top-level `commitment` beside `cases:` reads as unconditional, contradicting
   the split.
 
+**The invariant, stated once.** Anything that could fall on either side of the
+seam must **say which**. A predicate, an `inputs:` entry, a `binds`, a
+`threshold`, a commitment's `method`/`measure` — each carries an explicit
+`color`, and silence is a defect rather than a default (LEAK-2/4, CONFLICT-4).
+The checker cannot infer a color from a value: whether something is mechanical
+is a standard-setter's policy choice, not a property of the thing (spike 2, N1).
+`0.75 @ASC-840` and "major part" @IAS-17 are the same criterion, mechanized in
+one regime and left open in the other; likewise IFRS 15.39's progress `measure`
+is an open choice while the retrospective restatement IAS 8 requires for a
+material error is determined. Only the norm knows, so only the norm can say.
+
+This is also why `binds` above is a **colored predicate** and not a bare name:
+priority is itself colored, so a form that cannot carry a color cannot express
+what §3 requires of it.
+
 **Predicates** (the antecedent is built from these) are _colored_:
 
 ```
@@ -149,7 +164,7 @@ Lean's, not the norm's.
 **Priority / defeat** is itself colored:
 
 ```
-defeat      := { defeats: norm-id, binds: predicate, modifies?: <field := adjusted value> }   # binds may be judgment
+defeat      := { defeats: norm-id+, binds: colored-predicate, modifies?: <field := adjusted value> }
 ```
 
 **Concrete rendering (how §3 maps to `examples/`).** §3 is _abstract_ syntax; the
@@ -162,7 +177,12 @@ abstract grammar in two deliberate ways:
   — `classification: finance`, `timing: over-time`, `capitalize: false`,
   `adjustment: prior-period` — rather than the literal key `deontic-target`;
   the structural keys `method`, `estimate-inputs`, and `modifies` keep their
-  grammar names where they appear (e.g. `method: retrospective`).
+  grammar names where they appear. A `method`/`measure` is a **colored
+  mapping**, never a bare value: write `{ value: retrospective, color:
+  mechanical }` for a method the standard prescribes, and `{ color: judgment,
+  grounds: … }` for an open choice. (An earlier draft of this note gave a bare
+  `method: retrospective`, contradicting the `method?: judgment` production
+  above — the drift LEAK-4 now catches.)
 - A `defeat` appears in **either** of two shapes: as a **standalone** node
   (`{ defeats, binds, modifies? }`, e.g. `var-consideration-constraint`
   modifying the defeated norm's commitment), **or** as a **full norm carrying a
@@ -174,8 +194,16 @@ abstract grammar in two deliberate ways:
 
 1. **Leak detection.** No `judgment`/`election` predicate is evaluated as
    `mechanical`; every `mechanical` test's inputs are declared and colored.
-   _Implemented_ as the `deon-check` crate (LEAK-1/2/3); run it with
+   _Implemented_ as the `deon-check` crate (LEAK-1/2/3, plus LEAK-4: a
+   commitment's `method`/`measure` must declare its color); run it with
    `nix run . -- examples/`.
+
+   These rules verify that an author was internally **consistent** about the
+   seam — a name declared judgment is not then computed on, and computed-on data
+   was declared. They cannot verify that a `mechanical` predicate _deserves_ the
+   color: `lease.is-specialized` is indistinguishable from any other boolean
+   field of the subject without the accounting knowledge this checker
+   deliberately does not hold.
 2. **Grounding completeness.** Every `judgment` hole has a `grounds` ref that
    resolves to a real OKF concept anchor, with a declared source type.
    _Implemented_ in `deon-check` (GROUND-1/2 always; GROUND-3 anchor resolution
@@ -240,7 +268,9 @@ abstract grammar in two deliberate ways:
    collides on nothing, or that carries no `binds` at all (unconditional
    priority), is not a conflict.
 
-   `defeats:` and `covers:` are recognized in **any** shape a norm writes them.
+   `defeats:` and `covers:` take a **list**; a bare scalar is sugar for a
+   one-element list, exactly as `otherwise` is sugar for a `when`-less case.
+   They are recognized in **any** shape a norm writes them.
    The list forms are accepted and meaningful — one norm may defeat several, and
    one branch may cover several states — and a shape that names nothing is
    reported. Neither may be silently skipped: a claim the checker cannot read
