@@ -10,7 +10,9 @@ subjects:
       - { id: satisfied-at-a-point,
           grounds: { ref: "#ifrs15-38", source: standard-criterion } }
   thing:
-    states: [a, b]
+    states:
+      - { id: a, grounds: { ref: "#thing-a", source: standard-criterion } }
+      - { id: b, grounds: { ref: "#thing-b", source: standard-criterion } }
 ---
 
 # Performance obligation — state space (fixture)
@@ -36,3 +38,11 @@ Prose for the over-time criteria.
 ## Satisfied at a point in time {#ifrs15-38}
 
 Prose for the point-in-time indicators.
+
+## Thing, state a {#thing-a}
+
+Prose for the generic `thing` subject the red fixtures are checked against.
+
+## Thing, state b {#thing-b}
+
+Prose for the other state of `thing`.

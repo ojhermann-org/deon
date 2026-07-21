@@ -21,6 +21,15 @@
 //!   subject does not declare (or claiming any state when the subject has no
 //!   declared state space at all) — the dangling-anchor analogue.
 //!
+//! The state space is coverage's input, so it is held to the same standard as
+//! anything else this checker trusts (issue #18). [`bundle`] validates the
+//! declarations themselves — once per bundle, not once per norm file that reads
+//! it: **COVER-3** for a declaration that names no state at all (which would
+//! otherwise vanish from the space silently, quietly weakening every COVER-1),
+//! and GROUND-1/2/3 for its citation, since "which states this subject has" is
+//! a judgment about the standard and deon's rule for a judgment is that it must
+//! cite where it grounds.
+//!
 //! **Coverage is opt-in per norm.** A norm that claims no state makes no
 //! coverage claim, and is skipped: nothing can be said about whether its
 //! branches are total. Once a norm claims *one* state it must claim them all.
@@ -31,7 +40,7 @@
 
 use serde_yaml::Value;
 
-use crate::{cases, str_field, Finding, Okf, Rule};
+use crate::{cases, ground, str_field, Finding, Okf, Rule};
 
 /// Run check 3 over the parsed document, appending findings.
 pub(crate) fn check(doc: &Value, file: &str, okf: &Okf, out: &mut Vec<Finding>) {
@@ -109,4 +118,37 @@ fn claims(norm: &Value) -> Vec<(String, String)> {
         }
     }
     out
+}
+
+/// Validate the bundle's own state declarations (issue #18). Run once per
+/// bundle by [`crate::check_bundle`] — a bundle is loaded once and checked
+/// against many norm files, so reporting per file would duplicate every
+/// finding. Findings are located in the *concept* file that declares them.
+pub(crate) fn bundle(okf: &Okf, out: &mut Vec<Finding>) {
+    for decl in okf.declarations() {
+        let path = format!("subjects.{}.states[{}]", decl.subject, decl.index);
+        let Some(id) = &decl.id else {
+            out.push(Finding::new(
+                &decl.file,
+                &path,
+                Rule::MalformedState,
+                format!(
+                    "state declaration for subject `{}` names no state — it needs an `id` \
+                     (or to be written as a bare string); as written it is dropped from the \
+                     state space, so coverage silently stops checking for it",
+                    decl.subject
+                ),
+            ));
+            continue;
+        };
+        ground::criterion(
+            &decl.file,
+            &path,
+            &decl.reference,
+            &decl.source,
+            okf,
+            out,
+            &format!("state `{id}`"),
+        );
+    }
 }

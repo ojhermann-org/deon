@@ -92,6 +92,57 @@ pub(crate) fn anchors(doc: &Value, file: &str, okf: &Okf, out: &mut Vec<Finding>
     }
 }
 
+/// GROUND-1/2/3 for a single **criterion**, wherever it is written: a norm
+/// file's judgment hole, or a bundle's state declaration (issue #18). One
+/// finding at most, in rule order — a criterion with neither a `ref` nor a valid
+/// `source` reports the missing citation, not both defects.
+pub(crate) fn criterion(
+    file: &str,
+    path: &str,
+    reference: &Option<String>,
+    source: &Option<String>,
+    okf: &Okf,
+    out: &mut Vec<Finding>,
+    what: &str,
+) {
+    let Some(reference) = reference else {
+        out.push(Finding::new(
+            file,
+            path,
+            Rule::MissingCitation,
+            format!(
+                "{what} carries no `grounds.ref` — an open-textured hole must cite where \
+                 it grounds"
+            ),
+        ));
+        return;
+    };
+    if !valid_source(source) {
+        out.push(Finding::new(
+            file,
+            path,
+            Rule::InvalidSource,
+            format!(
+                "`grounds.source` is {} — must be one of {}",
+                match source {
+                    Some(s) => format!("`{s}`"),
+                    None => "absent".to_string(),
+                },
+                SOURCE_TYPES.join(" | ")
+            ),
+        ));
+        return;
+    }
+    if !okf.resolves(reference) {
+        out.push(Finding::new(
+            file,
+            path,
+            Rule::DanglingAnchor,
+            format!("`grounds.ref` `{reference}` does not resolve to an OKF anchor"),
+        ));
+    }
+}
+
 fn valid_source(source: &Option<String>) -> bool {
     source.as_deref().is_some_and(|s| SOURCE_TYPES.contains(&s))
 }
