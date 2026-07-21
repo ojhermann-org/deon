@@ -26,9 +26,16 @@
 //! declarations themselves — once per bundle, not once per norm file that reads
 //! it: **COVER-3** for a declaration that names no state at all (which would
 //! otherwise vanish from the space silently, quietly weakening every COVER-1),
-//! and GROUND-1/2/3 for its citation, since "which states this subject has" is
-//! a judgment about the standard and deon's rule for a judgment is that it must
-//! cite where it grounds.
+//! **COVER-4** for a block that looks like a declaration and yields nothing
+//! (unparseable frontmatter, or a subject with no `states:` list), and
+//! GROUND-1/2/3 for a declaration's citation, since "which states this subject
+//! has" is a judgment about the standard and deon's rule for a judgment is that
+//! it must cite where it grounds.
+//!
+//! COVER-3 and COVER-4 are the same failure at two altitudes: something that
+//! reads as a state space silently yields nothing, and a state absent from the
+//! space is one coverage stops looking for. Neither is visible in the norm
+//! files that trust it.
 //!
 //! **Coverage is opt-in per norm.** A norm that claims no state makes no
 //! coverage claim, and is skipped: nothing can be said about whether its
@@ -125,6 +132,14 @@ fn claims(norm: &Value) -> Vec<(String, String)> {
 /// against many norm files, so reporting per file would duplicate every
 /// finding. Findings are located in the *concept* file that declares them.
 pub(crate) fn bundle(okf: &Okf, out: &mut Vec<Finding>) {
+    for defect in okf.defects() {
+        out.push(Finding::new(
+            &defect.file,
+            &defect.path,
+            Rule::UnreadableStateSpace,
+            defect.detail.clone(),
+        ));
+    }
     for decl in okf.declarations() {
         let path = format!("subjects.{}.states[{}]", decl.subject, decl.index);
         let Some(id) = &decl.id else {

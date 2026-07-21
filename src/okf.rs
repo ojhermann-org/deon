@@ -45,6 +45,18 @@ pub struct Okf {
     anchors: BTreeSet<String>,
     states: BTreeMap<String, BTreeSet<String>>,
     declarations: Vec<StateDecl>,
+    defects: Vec<BundleDefect>,
+}
+
+/// A place the bundle failed to yield a state space that it looks like it meant
+/// to. Retained rather than skipped: an unreadable declaration block drops
+/// states silently, and a state absent from the space is one coverage stops
+/// looking for (issue #18).
+#[derive(Debug, Clone)]
+pub(crate) struct BundleDefect {
+    pub(crate) file: String,
+    pub(crate) path: String,
+    pub(crate) detail: String,
 }
 
 /// One state declaration, as written: which concept file and subject it belongs
@@ -102,6 +114,12 @@ impl Okf {
     pub(crate) fn declarations(&self) -> &[StateDecl] {
         &self.declarations
     }
+
+    /// Every place the bundle failed to yield a state space it looks like it
+    /// meant to declare.
+    pub(crate) fn defects(&self) -> &[BundleDefect] {
+        &self.defects
+    }
 }
 
 fn collect(path: &Path, out: &mut Okf) -> std::io::Result<()> {
@@ -114,49 +132,75 @@ fn collect(path: &Path, out: &mut Okf) -> std::io::Result<()> {
         for id in anchors_in(&text) {
             out.anchors.insert(id);
         }
-        for decl in states_in(&text, &path.display().to_string()) {
-            let entry = out.states.entry(decl.subject.clone()).or_default();
-            if let Some(id) = &decl.id {
-                entry.insert(id.clone());
-            }
-            out.declarations.push(decl);
-        }
+        states_in(&text, &path.display().to_string(), out);
     }
     Ok(())
 }
 
 /// Read the `subjects: { <name>: { states: [...] } }` block from a concept
-/// file's frontmatter. A file with no frontmatter, no `subjects:`, or
-/// unparseable YAML simply declares no state spaces — the bundle format is
-/// provisional, so this never fails the load.
-fn states_in(text: &str, file: &str) -> Vec<StateDecl> {
+/// file's frontmatter, recording both what it declares and where it failed to.
+/// Loading never fails: the bundle format is provisional, and a located finding
+/// says more than a load error does.
+///
+/// A file with **no frontmatter** declares no state spaces and is not a defect —
+/// a prose-only concept file is ordinary, and telling one apart from a file that
+/// meant to declare a state space needs the OKF format to settle whether
+/// frontmatter is mandatory (issue #20). Frontmatter that is present but
+/// *unparseable* is unambiguous, and so is a `subjects:` entry whose `states:`
+/// is missing or is not a list: both look like a declaration and yield nothing.
+fn states_in(text: &str, file: &str, out: &mut Okf) {
     let Some(front) = frontmatter(text) else {
-        return Vec::new();
+        return;
     };
-    let Ok(doc) = serde_yaml::from_str::<Value>(front) else {
-        return Vec::new();
+    let doc = match serde_yaml::from_str::<Value>(front) {
+        Ok(doc) => doc,
+        Err(e) => {
+            out.defects.push(BundleDefect {
+                file: file.to_string(),
+                path: "frontmatter".to_string(),
+                detail: format!(
+                    "concept file opens with a `---` fence but its frontmatter does not \
+                     parse ({e}) — any state space it declares is silently invisible"
+                ),
+            });
+            return;
+        }
     };
     let Some(Value::Mapping(subjects)) = doc.get("subjects") else {
-        return Vec::new();
+        return;
     };
-    let mut out = Vec::new();
     for (name, body) in subjects {
+        let subject = key_str(name);
         let Some(Value::Sequence(states)) = body.get("states") else {
+            out.defects.push(BundleDefect {
+                file: file.to_string(),
+                path: format!("subjects.{subject}.states"),
+                detail: format!(
+                    "subject `{subject}` is declared with no `states:` list — it yields an \
+                     empty state space, so coverage has nothing to check against"
+                ),
+            });
             continue;
         };
         for (index, state) in states.iter().enumerate() {
             let grounds = state.get("grounds");
-            out.push(StateDecl {
+            let decl = StateDecl {
                 file: file.to_string(),
-                subject: key_str(name),
+                subject: subject.clone(),
                 index,
                 id: state_id(state),
                 reference: grounds.and_then(|g| str_field(g, "ref")),
                 source: grounds.and_then(|g| str_field(g, "source")),
-            });
+            };
+            if let Some(id) = &decl.id {
+                out.states
+                    .entry(subject.clone())
+                    .or_default()
+                    .insert(id.clone());
+            }
+            out.declarations.push(decl);
         }
     }
-    out
 }
 
 /// A state is either `{ id: <name>, grounds: ... }` or a bare `<name>`.

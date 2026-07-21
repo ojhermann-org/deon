@@ -180,3 +180,43 @@ fn state_space_bundle_grounds_itself() {
             .join("\n")
     );
 }
+
+/// COVER-4: a block that reads as a state space but yields none is flagged —
+/// unparseable frontmatter, and a subject with no `states:` list. A prose-only
+/// concept file (no frontmatter at all) must NOT flag: that case is ambiguous
+/// until the OKF format settles whether frontmatter is mandatory (issue #20).
+#[test]
+fn unreadable_state_spaces_are_flagged() {
+    let okf = Okf::load(&manifest("tests/fixtures/okf-unreadable")).expect("bundle loads");
+    let findings = check_bundle(&okf);
+    let rendered = findings
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    assert_eq!(findings.len(), 2, "expected 2 findings, got:\n{rendered}");
+    assert!(findings
+        .iter()
+        .all(|f| f.rule == Rule::UnreadableStateSpace));
+
+    let broken = findings
+        .iter()
+        .find(|f| f.file.ends_with("broken-frontmatter.md"))
+        .expect("unparseable frontmatter is flagged");
+    assert_eq!(broken.path, "frontmatter");
+
+    let stateless = findings
+        .iter()
+        .find(|f| f.file.ends_with("no-states-list.md"))
+        .expect("a subject with no states list is flagged");
+    assert_eq!(stateless.path, "subjects.widget.states");
+
+    assert!(
+        !findings.iter().any(|f| f.file.ends_with("prose-only.md")),
+        "a prose-only concept file must not flag:\n{rendered}"
+    );
+    // The prose-only file still contributes its anchors — it is a normal
+    // concept file, not a broken one.
+    assert!(okf.resolves("#prose-anchor"));
+}
