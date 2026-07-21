@@ -3,7 +3,8 @@
 Status: exploratory design, representational-only. Rests on two paper spikes
 ([`spikes/revenue-recognition-timing.md`](spikes/revenue-recognition-timing.md),
 [`spikes/lease-classification.md`](spikes/lease-classification.md)) and two seed
-norm files ([`../examples/`](../examples/)). No execution semantics proposed yet
+norm files ([`crates/deon/examples/`](../crates/deon/examples/)). No execution
+semantics proposed yet
 — see Non-goals.
 
 deon is the judgment-side sibling to
@@ -188,7 +189,8 @@ Lean's, not the norm's.
 defeat      := { defeats: norm-id+, binds: colored-predicate, modifies?: <field := adjusted value> }
 ```
 
-**Concrete rendering (how §3 maps to `examples/`).** §3 is _abstract_ syntax; the
+**Concrete rendering (how §3 maps to `crates/deon/examples/`).** §3 is
+_abstract_ syntax; the
 seed norms render it as OKF frontmatter YAML. Each lives in a `<concept>.okf.md`
 file — OKF-format markdown: the norm block is the YAML frontmatter, the
 authoritative cited prose is the body beneath it. The **`.okf.md` suffix is
@@ -236,7 +238,7 @@ The field names differ from the abstract grammar in these deliberate ways:
    `mechanical`; every `mechanical` test's inputs are declared and colored.
    _Implemented_ as the `deon-check` crate (LEAK-1/2/3, plus LEAK-4: a
    commitment's `method`/`measure` must declare its color); run it with
-   `nix run . -- examples/`.
+   `nix run . -- crates/deon/examples/`.
 
    These rules verify that an author was internally **consistent** about the
    seam — a name declared judgment is not then computed on, and computed-on data
