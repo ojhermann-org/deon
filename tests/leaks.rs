@@ -111,6 +111,8 @@ fn near_miss_forms_are_caught() {
         );
     };
 
+    // A commitment field that says nothing about its side of the seam.
+    at("norms[3].commitment.method", Rule::UncoloredCommitmentField);
     // A field access on a judgment name is still computing on the judgment.
     at("norms[0].antecedent.all-of[1]", Rule::JudgmentComputed);
     // A dotted name rooted outside the norm's subject is undeclared data.
@@ -123,18 +125,18 @@ fn near_miss_forms_are_caught() {
     // An uncited aggregation is still an aggregation: it must trip BOTH the
     // rule that demands the citation and the one that catches the formula.
     at(
-        "norms[3].antecedent.weigh.judgment-aggregation",
+        "norms[4].antecedent.weigh.judgment-aggregation",
         Rule::FakedAggregation,
     );
     at(
-        "norms[3].antecedent.weigh.judgment-aggregation",
+        "norms[4].antecedent.weigh.judgment-aggregation",
         Rule::MissingCitation,
     );
 
     assert_eq!(
         findings.len(),
-        5,
-        "expected exactly 5 findings:\n{rendered}"
+        6,
+        "expected exactly 6 findings:\n{rendered}"
     );
 }
 
