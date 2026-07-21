@@ -18,13 +18,17 @@
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
-      # The Rust `deon-check` binary (the leak-detection static check, DESIGN §4
-      # check 1) built hermetically: `cargo fmt --check` + `cargo clippy
-      # -D warnings` gate the build, and `cargo test` (buildRustPackage's default
-      # checkPhase) runs the acceptance suite (seed norms clean; leaky fixture →
-      # 3 located leaks). Deps are vendored from Cargo.lock, so it needs no
-      # network. Exposed as both `packages.default` and a flake check, so
-      # `nix flake check` — the one required CI status — covers Rust too.
+      # The Cargo workspace built hermetically: `cargo fmt --check` + `cargo
+      # clippy -D warnings` gate the build, and `cargo test` (buildRustPackage's
+      # default checkPhase) runs the acceptance suite across every member — the
+      # seeds clean, and a red fixture per check. Deps are vendored from
+      # Cargo.lock, so it needs no network. Exposed as both `packages.default`
+      # and a flake check, so `nix flake check` — the one required CI status —
+      # covers Rust too.
+      #
+      # Members: `okf-graph` and `okf-normative` (skeletons), and `deon-check`,
+      # the archived reference implementation that still carries the binary and
+      # the acceptance suite.
       deonCheckFor =
         system:
         let
@@ -33,16 +37,15 @@
         pkgs.rustPlatform.buildRustPackage {
           pname = "deon-check";
           version = "0.1.0";
-          # Only the crate inputs — keeps the build pure and off target/ etc.
-          # examples/ and tests/ are included: the acceptance tests read them.
+          # Only the workspace inputs — keeps the build pure and off target/
+          # etc. `crates/` carries each member's src, plus deon's tests/ and
+          # examples/, which its acceptance tests read via CARGO_MANIFEST_DIR.
           src = pkgs.lib.fileset.toSource {
             root = ./.;
             fileset = pkgs.lib.fileset.unions [
               ./Cargo.toml
               ./Cargo.lock
-              ./src
-              ./tests
-              ./examples
+              ./crates
             ];
           };
           cargoLock.lockFile = ./Cargo.lock;

@@ -1,0 +1,13 @@
+[package]
+name = "okf-normative"
+description = "Semantic interpretation of the normative properties of an okf-graph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+okf-graph = { workspace = true }
+
+[lints]
+workspace = true

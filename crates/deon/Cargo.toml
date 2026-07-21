@@ -1,0 +1,17 @@
+[package]
+name = "deon-check"
+description = "Archived reference implementation: the colored deontic norm checker (DESIGN §4)"
+publish = false
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# serde_yaml is archived upstream but stable and battle-tested; we only ever
+# parse trusted local .okf.md frontmatter, and it sits behind the thin `parse`
+# layer so it can be swapped without touching the checker. Named in issue #2.
+serde_yaml = "0.9"
+
+[lints]
+workspace = true

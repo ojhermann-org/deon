@@ -15,7 +15,7 @@ deon is the **language and its checker** — the semantics and tooling. It is _n
 a collection of norms and it is _not_ an authority on accounting. Norm _content_
 lives beside its cited prose in an OKF judgment bundle; deon _consumes_ those
 bundles and checks them. It ships a small seed set of worked examples
-([`examples/`](examples/) — revenue-recognition timing, lease classification)
+([`examples/`](crates/deon/examples/) — revenue-recognition timing, lease classification)
 until an OKF bundle exists to hold them.
 
 This mirrors [the split][pacioli-split] its sibling **Pacioli** keeps on the
@@ -111,13 +111,13 @@ two worked spikes that this design rests on: **[docs/spikes/](docs/spikes/)**.
   regime (REGIME-1/2).
 
 ```sh
-nix run . -- examples/                    # the seed norms → no defects (exit 0)
-nix run . -- tests/fixtures/leaky.okf.md  # red: 3 located leaks (exit 1)
+nix run . -- crates/deon/examples/                    # the seed norms → no defects (exit 0)
+nix run . -- crates/deon/tests/fixtures/leaky.okf.md  # red: 3 located leaks (exit 1)
 
 # The bundle-backed checks. This bundle declares the performance-obligation
 # state space, so COVER-1 reports the seed's deliberate gap — the "PO not yet
 # satisfied → recognize nothing" third state spike 1 predicted (F5).
-nix run . -- --okf tests/fixtures/okf-states examples/
+nix run . -- --okf crates/deon/tests/fixtures/okf-states crates/deon/examples/
 ```
 
 Every check ships with both a green case (the seed norms, authored honestly) and
@@ -128,10 +128,11 @@ a red fixture, because a checker you've only seen say "clean" isn't a checker.
 
 Exploratory. The design rests on two converging paper spikes
 ([`docs/spikes/`](docs/spikes/)) and the design note
-([`docs/DESIGN.md`](docs/DESIGN.md)); [`examples/`](examples/) holds the two
-concepts as seed norm files. All six DESIGN §4 checks are built (coverage and
-GROUND-3 need an OKF bundle, via `--okf`); no execution engine or neural
-components are built yet — see the design note's Non-goals.
+([`docs/DESIGN.md`](docs/DESIGN.md));
+[`crates/deon/examples/`](crates/deon/examples/) holds the seed norm files. All
+six DESIGN §4 checks are built (coverage and GROUND-3 need an OKF bundle, via
+`--okf`); no execution engine or neural components are built yet — see the
+design note's Non-goals.
 
 [okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
 [pacioli-split]: https://github.com/ojhermann-org/pacioli#why-this-split
