@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Static leak-detection checker for deon colored deontic norms (DESIGN §4, check 1)"
 license = "Apache-2.0"
-repository = "https://github.com/ojhermann-org/deon"
+repository = "https://github.com/ojhermann-org/okf-tools"
 publish = false
 
 [dependencies]
