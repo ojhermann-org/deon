@@ -233,8 +233,19 @@ abstract grammar in two deliberate ways:
    constraining the same commitment field with different values — whose `binds`
    is judgment/election-colored, reported as `underdetermined(<predicate>)`;
    CONFLICT-3 the same collision bound mechanically, so decidable at the seam and
-   reported as a real conflict. A defeat edge that collides on nothing, or that
-   carries no `binds` at all (unconditional priority), is not a conflict.
+   reported as a real conflict; CONFLICT-4 the same collision where `binds`
+   carries no color at all — priority is itself colored, so an uncolored
+   predicate cannot be called decidable (the bare `binds: <predicate>` form
+   above cannot carry a color, so it always lands here). A defeat edge that
+   collides on nothing, or that carries no `binds` at all (unconditional
+   priority), is not a conflict.
+
+   `defeats:` and `covers:` are recognized in **any** shape a norm writes them.
+   The list forms are accepted and meaningful — one norm may defeat several, and
+   one branch may cover several states — and a shape that names nothing is
+   reported. Neither may be silently skipped: a claim the checker cannot read
+   must never read as "this norm makes no claim", or a typo becomes an opt-out
+   of the check that would have caught it.
 5. **Termination-at-seam.** Every norm's obligation reaches a `commitment` about
    plain data; flag any that don't. _Implemented_ in `deon-check` (SEAM-1 a norm
    with neither a `commitment` nor a `modifies`; SEAM-2 an empty commitment or an

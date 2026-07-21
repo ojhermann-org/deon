@@ -13,6 +13,16 @@
 //!   `underdetermined(<predicate>)`, never as a static contradiction.
 //! - **CONFLICT-3 — determinate conflict.** The same collision where `binds` is
 //!   mechanical: decidable at the seam, so it is reported as a real conflict.
+//! - **CONFLICT-4 — uncolored priority.** The same collision where `binds`
+//!   carries no color at all. Priority is itself colored, so an uncolored
+//!   predicate has said nothing about which side of the seam it falls on, and
+//!   calling it decidable would be the silent mechanical evaluation this project
+//!   exists to prevent. The abstract grammar's bare form (`binds: <predicate>`)
+//!   cannot carry a color, so it always lands here.
+//!
+//! Both `defeats:` and its target list are recognized in **any** shape a norm
+//! might write them: a `defeats:` the checker cannot read must be reported, not
+//! quietly skipped — skipping it disables the whole check for that edge.
 //!
 //! A **collision** is representational, not evaluated (DESIGN §9): the defeater
 //! and the defeated both constrain the same commitment field with different
@@ -41,64 +51,83 @@ pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
     let ids: Vec<Option<String>> = norms.iter().map(|n| str_field(n, "id")).collect();
 
     for (i, norm) in norms.iter().enumerate() {
-        let Some(target) = str_field(norm, "defeats") else {
-            continue;
-        };
-        let path = format!("norms[{i}].defeats");
         let here = ids[i].clone().unwrap_or_else(|| format!("norms[{i}]"));
 
-        let Some(j) = ids
-            .iter()
-            .position(|id| id.as_deref() == Some(target.as_str()))
-        else {
-            out.push(Finding::new(
-                file,
-                &path,
-                Rule::DanglingDefeat,
-                format!(
-                    "`defeats: {target}` names no norm in this document — the priority \
-                     edge points nowhere"
-                ),
-            ));
-            continue;
-        };
+        for (path, target) in targets(norm, i) {
+            let Some(target) = target else {
+                out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::DanglingDefeat,
+                    "`defeats:` names no norm — it must be a norm id, or a list of them; \
+                     as written the priority edge points nowhere"
+                        .to_string(),
+                ));
+                continue;
+            };
 
-        let collisions = collisions(norm, &norms[j]);
-        if collisions.is_empty() {
-            continue;
-        }
-        // No `binds` at all: priority is unconditional, so the collision is
-        // already settled by the edge itself.
-        let Some(binds) = norm.get("binds") else {
-            continue;
-        };
-        let (predicate, color) = binding(binds);
-        let fields = collisions.join(", ");
+            let Some(j) = ids
+                .iter()
+                .position(|id| id.as_deref() == Some(target.as_str()))
+            else {
+                out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::DanglingDefeat,
+                    format!(
+                        "`defeats: {target}` names no norm in this document — the priority \
+                         edge points nowhere"
+                    ),
+                ));
+                continue;
+            };
 
-        match color.as_deref() {
-            Some(c) if is_judgment_color(c) => out.push(Finding::new(
-                file,
-                &path,
-                Rule::UnderdeterminedConflict,
-                format!(
-                    "underdetermined({predicate}) — `{here}` defeats `{target}` on {fields}, \
-                     bound by a {c} predicate: the conflict cannot be resolved until that \
-                     hole is grounded, so it is not a static contradiction (DESIGN §4.4)"
-                ),
-            )),
-            other => out.push(Finding::new(
-                file,
-                &path,
-                Rule::DeterminateConflict,
-                format!(
-                    "`{here}` defeats `{target}` on {fields}, bound by {} predicate \
-                     `{predicate}` — the collision is real and decidable at the seam",
-                    match other {
-                        Some(c) => format!("a {c}"),
-                        None => "an uncolored".to_string(),
-                    }
-                ),
-            )),
+            let collisions = collisions(norm, &norms[j]);
+            if collisions.is_empty() {
+                continue;
+            }
+            // No `binds` at all: priority is unconditional, so the collision is
+            // already settled by the edge itself.
+            let Some(binds) = norm.get("binds") else {
+                continue;
+            };
+            let (predicate, color) = binding(binds);
+            let fields = collisions.join(", ");
+
+            match color.as_deref() {
+                Some(c) if is_judgment_color(c) => out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::UnderdeterminedConflict,
+                    format!(
+                        "underdetermined({predicate}) — `{here}` defeats `{target}` on {fields}, \
+                         bound by a {c} predicate: the conflict cannot be resolved until that \
+                         hole is grounded, so it is not a static contradiction (DESIGN §4.4)"
+                    ),
+                )),
+                Some(c) => out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::DeterminateConflict,
+                    format!(
+                        "`{here}` defeats `{target}` on {fields}, bound by a {c} predicate \
+                         `{predicate}` — the collision is real and decidable at the seam"
+                    ),
+                )),
+                // Uncolored: the priority predicate has said nothing about which side
+                // of the seam it falls on. Reporting it as decidable would be the
+                // silent mechanical evaluation this project exists to prevent.
+                None => out.push(Finding::new(
+                    file,
+                    &path,
+                    Rule::UncoloredPriority,
+                    format!(
+                        "`{here}` defeats `{target}` on {fields}, bound by `{predicate}` which \
+                         carries no color — priority is itself colored (DESIGN §3), and an \
+                         uncolored predicate cannot be called decidable"
+                    ),
+                )),
+            }
         }
     }
 }
@@ -181,5 +210,28 @@ fn render(v: &Value) -> String {
         Value::Bool(b) => b.to_string(),
         Value::Null => "null".to_string(),
         _ => "<structured>".to_string(),
+    }
+}
+
+/// The norms this norm claims to defeat, as `(path, target)`. `None` marks a
+/// `defeats:` that is present but names no norm — recognized so it can be
+/// reported, rather than skipping the edge and with it the whole check. A list
+/// form is accepted: one norm may defeat several.
+fn targets(norm: &Value, i: usize) -> Vec<(String, Option<String>)> {
+    match norm.get("defeats") {
+        None => Vec::new(),
+        Some(Value::String(s)) => vec![(format!("norms[{i}].defeats"), Some(s.clone()))],
+        Some(Value::Sequence(list)) => list
+            .iter()
+            .enumerate()
+            .map(|(k, item)| {
+                let path = format!("norms[{i}].defeats[{k}]");
+                match item {
+                    Value::String(s) => (path, Some(s.clone())),
+                    _ => (path, None),
+                }
+            })
+            .collect(),
+        Some(_) => vec![(format!("norms[{i}].defeats"), None)],
     }
 }

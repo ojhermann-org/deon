@@ -75,6 +75,8 @@ pub enum Rule {
     UnderdeterminedConflict,
     /// CONFLICT-3: a collision whose resolving `binds` is mechanical.
     DeterminateConflict,
+    /// CONFLICT-4: a collision whose resolving `binds` carries no color.
+    UncoloredPriority,
 }
 
 impl Rule {
@@ -99,6 +101,7 @@ impl Rule {
             Rule::DanglingDefeat => "CONFLICT-1",
             Rule::UnderdeterminedConflict => "CONFLICT-2",
             Rule::DeterminateConflict => "CONFLICT-3",
+            Rule::UncoloredPriority => "CONFLICT-4",
         }
     }
 
@@ -123,6 +126,7 @@ impl Rule {
             Rule::DanglingDefeat => "dangling defeat",
             Rule::UnderdeterminedConflict => "underdetermined conflict",
             Rule::DeterminateConflict => "determinate conflict",
+            Rule::UncoloredPriority => "uncolored priority",
         }
     }
 }

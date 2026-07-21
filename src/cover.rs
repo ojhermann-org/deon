@@ -67,6 +67,17 @@ pub(crate) fn check(doc: &Value, file: &str, okf: &Okf, out: &mut Vec<Finding>) 
 
         let declared = okf.states(&subject);
         for (branch, state) in &claims {
+            let Some(state) = state else {
+                out.push(Finding::new(
+                    file,
+                    &format!("{path}.{branch}"),
+                    Rule::UndeclaredStateClaimed,
+                    "`covers:` names no state — it must be a state id, or a list of \
+                     them; as written the branch claims nothing"
+                        .to_string(),
+                ));
+                continue;
+            };
             if !declared.is_some_and(|d| d.contains(state)) {
                 out.push(Finding::new(
                     file,
@@ -88,7 +99,10 @@ pub(crate) fn check(doc: &Value, file: &str, okf: &Okf, out: &mut Vec<Finding>) 
 
         let Some(declared) = declared else { continue };
         for state in declared {
-            if !claims.iter().any(|(_, claimed)| claimed == state) {
+            if !claims
+                .iter()
+                .any(|(_, claimed)| claimed.as_deref() == Some(state.as_str()))
+            {
                 out.push(Finding::new(
                     file,
                     &path,
@@ -106,22 +120,39 @@ pub(crate) fn check(doc: &Value, file: &str, okf: &Okf, out: &mut Vec<Finding>) 
 
 /// Every state this norm claims, as `(branch path, state)`. A branch claims a
 /// state with `covers:`: on the norm itself (the antecedent-holds branch), on
-/// `otherwise`, or on each `cases[i]`.
-fn claims(norm: &Value) -> Vec<(String, String)> {
+/// `otherwise`, or on each `cases[i]`. `None` marks a `covers:` that is present
+/// but names no state — recognized so it can be reported, never skipped.
+///
+/// A branch may cover **several** states (`covers: [a, b]`): one branch of a
+/// norm can legitimately handle more than one of the subject's states. That
+/// shape is accepted rather than flagged — but it is *recognized* either way,
+/// because a `covers:` the checker does not understand must not read as "this
+/// norm makes no coverage claim". Silently opting a norm out of coverage is the
+/// gap coverage exists to find.
+fn claims(norm: &Value) -> Vec<(String, Option<String>)> {
     let mut out = Vec::new();
-    if let Some(state) = str_field(norm, "covers") {
-        out.push(("covers".to_string(), state));
-    }
-    if let Some(otherwise) = norm.get("otherwise") {
-        if let Some(state) = str_field(otherwise, "covers") {
-            out.push(("otherwise.covers".to_string(), state));
+    let mut claimed = |path: String, v: Option<&Value>| match v {
+        None => {}
+        Some(Value::String(s)) => out.push((path, Some(s.clone()))),
+        Some(Value::Sequence(list)) => {
+            for (i, item) in list.iter().enumerate() {
+                let path = format!("{path}[{i}]");
+                match item {
+                    Value::String(s) => out.push((path, Some(s.clone()))),
+                    _ => out.push((path, None)),
+                }
+            }
         }
+        Some(_) => out.push((path, None)),
+    };
+
+    claimed("covers".to_string(), norm.get("covers"));
+    if let Some(otherwise) = norm.get("otherwise") {
+        claimed("otherwise.covers".to_string(), otherwise.get("covers"));
     }
     if let Some(Value::Sequence(list)) = norm.get("cases") {
         for ((case, _), value) in cases(norm).into_iter().zip(list) {
-            if let Some(state) = str_field(value, "covers") {
-                out.push((format!("{case}.covers"), state));
-            }
+            claimed(format!("{case}.covers"), value.get("covers"));
         }
     }
     out

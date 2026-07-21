@@ -220,3 +220,35 @@ fn unreadable_state_spaces_are_flagged() {
     // concept file, not a broken one.
     assert!(okf.resolves("#prose-anchor"));
 }
+
+/// A `covers:` is recognized in any shape. The list form is accepted (a branch
+/// may cover several states); a shape that names no state is reported. Neither
+/// may read as "this norm makes no coverage claim" — a typo must not opt a norm
+/// out of the check that would have caught it.
+#[test]
+fn claim_shapes_are_recognized_not_skipped() {
+    let rel = "tests/fixtures/claim-shapes.okf.md";
+    let findings = check_with_okf(rel, &read(rel), &bundle()).expect("fixture parses");
+    let c = cover_findings(&findings);
+    let rendered = render(&c);
+
+    // `base` covers both declared states via a list — nothing to report.
+    assert!(
+        !c.iter().any(|f| f.path.starts_with("norms[0]")),
+        "a list-form claim must satisfy coverage:\n{rendered}"
+    );
+    // A `covers:` naming no state is reported at the claiming branch...
+    assert!(
+        c.iter()
+            .any(|f| f.path == "norms[3].covers" && f.rule == Rule::UndeclaredStateClaimed),
+        "expected COVER-2 at norms[3].covers in:\n{rendered}"
+    );
+    // ...and the norm still owes both states, since it claimed neither.
+    assert_eq!(
+        c.iter()
+            .filter(|f| f.path == "norms[3]" && f.rule == Rule::UncoveredState)
+            .count(),
+        2,
+        "expected both states reported uncovered:\n{rendered}"
+    );
+}
