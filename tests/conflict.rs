@@ -21,7 +21,10 @@ fn conflict_findings(findings: &[Finding]) -> Vec<&Finding> {
         .filter(|f| {
             matches!(
                 f.rule,
-                Rule::DanglingDefeat | Rule::UnderdeterminedConflict | Rule::DeterminateConflict
+                Rule::DanglingDefeat
+                    | Rule::UnderdeterminedConflict
+                    | Rule::DeterminateConflict
+                    | Rule::UncoloredPriority
             )
         })
         .collect()
@@ -120,5 +123,40 @@ fn conflict_collides_against_a_middle_case() {
             && c[0].detail.contains("point-in-time"),
         "collides on the middle case: {}",
         c[0].detail
+    );
+}
+
+/// A `defeats:` the checker cannot read must be reported, not skipped — skipping
+/// it disables the whole check for that edge. The list form is meaningful (one
+/// norm may defeat several), so it is accepted and each target checked; an
+/// uncolored `binds` is CONFLICT-4, never "decidable at the seam".
+#[test]
+fn claim_shapes_are_recognized_not_skipped() {
+    let rel = "tests/fixtures/claim-shapes.okf.md";
+    let findings = check(rel, &read(rel)).expect("fixture parses");
+    let c = conflict_findings(&findings);
+    let rendered = render(&c);
+
+    let at = |path: &str, rule: Rule| {
+        assert!(
+            c.iter().any(|f| f.path == path && f.rule == rule),
+            "expected {} at {path} in:\n{rendered}",
+            rule.code()
+        );
+    };
+
+    // One list, two targets, two independent verdicts.
+    at("norms[1].defeats[0]", Rule::UnderdeterminedConflict);
+    at("norms[1].defeats[1]", Rule::DanglingDefeat);
+    // An uncolored priority predicate is not decidable.
+    at("norms[2].defeats", Rule::UncoloredPriority);
+    assert!(
+        !c.iter().any(|f| f.rule == Rule::DeterminateConflict),
+        "an uncolored binds must never be reported as determinate:\n{rendered}"
+    );
+    assert_eq!(
+        c.len(),
+        3,
+        "expected exactly 3 conflict findings:\n{rendered}"
     );
 }
