@@ -46,6 +46,10 @@ norms:
         - { predicate: short-term, color: mechanical,
             test: "lease.term <= threshold",
             threshold: { value: "12mo", regime: IFRS-16, color: mechanical } }
+        # Colored `judgment` but sourced `entity-election`: IFRS 16's exemption
+        # is an entity election whose threshold ("low value") is open-textured.
+        # Whether that is one node or two — the election, plus a judgment inside
+        # it — is a question about the norm, not the language (DESIGN §3).
         - { predicate: low-value, color: judgment,
             grounds: { ref: "#low-value", source: entity-election } }
     commitment: { capitalize: false }
