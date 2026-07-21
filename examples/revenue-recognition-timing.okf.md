@@ -11,6 +11,7 @@ norms:
   - id: rev-rec-timing
     subject: performance-obligation
     deontic: obligation
+    covers: satisfied-over-time        # the antecedent-holds branch
     antecedent:                        # mechanical any-of over judgment atoms
       over-time:
         any-of:
@@ -25,6 +26,7 @@ norms:
       measure: { color: judgment, grounds: { ref: "#ifrs15-39", source: standard-criterion } }
       note: arithmetic (measure → per-period amounts) is downstream Lean
     otherwise:                         # residual branch
+      covers: satisfied-at-a-point
       commitment:
         timing: point-in-time
         point:
@@ -52,6 +54,11 @@ norms:
 coverage-note: >
   "Performance obligation not yet satisfied → recognize nothing" is a third state
   not represented above; the checker flags it as a coverage gap (spike 1, F5).
+  The two branches carry `covers:` tags, so this norm asks to be checked — and
+  COVER-1 reports the missing `not-yet-satisfied` state under `--okf`, against a
+  bundle declaring the subject's state space. The gap is left open on purpose:
+  the seed is a faithful rendering of the spike, and closing it here would hide
+  the finding the check exists to make.
 ---
 
 # Revenue recognition — timing

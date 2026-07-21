@@ -191,7 +191,29 @@ abstract grammar in two deliberate ways:
    total (antecedent-holds → `commitment`, else → `otherwise.commitment`), but
    coverage still checks that this binary matches the subject's real states — the
    "recognize nothing" third state is a gap an over-time/point-in-time `otherwise`
-   hides, not one it closes.
+   hides, not one it closes. _Implemented_ in `deon-check`: COVER-1 a declared
+   state no branch of the norm claims; COVER-2 a `covers:` naming a state the
+   subject does not declare.
+
+   The checker cannot know a subject's states — deriving them would be an
+   evaluator (§9) or a hardcoded accounting fact (out of scope). So the **state
+   space is declared**, as norm content in the OKF bundle beside the prose that
+   grounds it, and coverage runs only under `--okf` (like GROUND-3):
+
+   ```yaml
+   subjects:
+     performance-obligation:
+       states:
+         - { id: not-yet-satisfied, grounds: { ref: "#ifrs15-31", source: standard-criterion } }
+   ```
+
+   A branch claims a state with `covers:` — on the norm (the antecedent-holds
+   branch), on `otherwise`, or on each `cases[i]`. **Coverage is opt-in per
+   norm:** a norm that claims no state is skipped, since nothing can be said
+   about whether its branches are total; once a norm claims one state it must
+   claim them all. The rev-rec seed carries `covers:` tags and its third state is
+   left unrepresented on purpose, so COVER-1 reports it — the finding spike 1
+   predicted (F5), kept live rather than papered over.
 4. **Conditional conflict.** When norm A `defeats` norm B via a judgment `binds`,
    report the conflict as _underdetermined until grounded_, not a static
    contradiction. _Implemented_ in `deon-check`: CONFLICT-1 a `defeats:` naming
