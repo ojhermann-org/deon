@@ -160,7 +160,13 @@ abstract grammar in two deliberate ways:
    hides, not one it closes.
 4. **Conditional conflict.** When norm A `defeats` norm B via a judgment `binds`,
    report the conflict as _underdetermined until grounded_, not a static
-   contradiction.
+   contradiction. _Implemented_ in `deon-check`: CONFLICT-1 a `defeats:` naming
+   no norm in the document; CONFLICT-2 a **collision** — defeater and defeated
+   constraining the same commitment field with different values — whose `binds`
+   is judgment/election-colored, reported as `underdetermined(<predicate>)`;
+   CONFLICT-3 the same collision bound mechanically, so decidable at the seam and
+   reported as a real conflict. A defeat edge that collides on nothing, or that
+   carries no `binds` at all (unconditional priority), is not a conflict.
 5. **Termination-at-seam.** Every norm's obligation reaches a `commitment` about
    plain data; flag any that don't. _Implemented_ in `deon-check` (SEAM-1 a norm
    with neither a `commitment` nor a `modifies`; SEAM-2 an empty commitment or an
