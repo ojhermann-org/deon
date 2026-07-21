@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use deon_check::{check, check_anchors, Okf};
+use deon_check::{check, check_with_okf, Okf};
 
 const USAGE: &str = "\
 deon-check — static checks for deon norms (DESIGN §4)
@@ -20,14 +20,17 @@ Arguments:
     <path>          a .okf.md file, or a directory searched recursively for them
 
 Options:
-    --okf <bundle>  also run GROUND-3: resolve grounds.ref anchors against this
-                    OKF concept bundle (a .md file or a directory of them)
+    --okf <bundle>  also run the bundle-backed checks against this OKF concept
+                    bundle (a .md file or a directory of them): GROUND-3
+                    (resolve grounds.ref anchors) and coverage (check the
+                    branches against the subject's declared state space)
     --quiet         print findings only (suppress the per-file/summary lines)
     -h, --help      show this help
 
 Checks: leak detection (LEAK-1/2/3), grounding completeness (GROUND-1/2;
-GROUND-3 only with --okf), conditional conflict (CONFLICT-1/2/3),
-termination-at-seam (SEAM-1/2) and regime hygiene (REGIME-1/2).
+GROUND-3 only with --okf), coverage (COVER-1/2, only with --okf), conditional
+conflict (CONFLICT-1/2/3), termination-at-seam (SEAM-1/2/3) and regime hygiene
+(REGIME-1/2).
 
 Exit codes:
     0  clean (no findings)   1  findings   2  usage / IO / parse error";
@@ -64,7 +67,11 @@ fn main() -> ExitCode {
         Some(p) => match Okf::load(Path::new(p)) {
             Ok(o) => {
                 if !quiet {
-                    eprintln!("okf: {} anchor(s) from {p}", o.len());
+                    eprintln!(
+                        "okf: {} anchor(s), {} subject state space(s) from {p}",
+                        o.len(),
+                        o.subjects()
+                    );
                 }
                 Some(o)
             }
@@ -108,7 +115,7 @@ fn main() -> ExitCode {
             }
         };
         if let Some(okf) = &okf {
-            match check_anchors(&display, &source, okf) {
+            match check_with_okf(&display, &source, okf) {
                 Ok(f) => findings.extend(f),
                 Err(e) => {
                     eprintln!("error: {display}: {e}");
@@ -129,7 +136,7 @@ fn main() -> ExitCode {
         let ground3 = if okf.is_some() {
             ""
         } else {
-            " (GROUND-3 skipped — pass --okf to resolve anchors)"
+            " (GROUND-3 + coverage skipped — pass --okf for the bundle-backed checks)"
         };
         if total == 0 {
             eprintln!("clean: 0 findings in {} file(s){ground3}", files.len());

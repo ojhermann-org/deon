@@ -6,7 +6,7 @@
 
 use std::path::PathBuf;
 
-use deon_check::{check, check_anchors, Okf, Rule};
+use deon_check::{check, check_with_okf, Okf, Rule};
 
 fn manifest(rel: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel)
@@ -84,7 +84,8 @@ fn dangling_anchor_trips_only_under_okf() {
     let okf = Okf::load(&manifest("tests/fixtures/okf")).expect("okf bundle loads");
     assert_eq!(okf.len(), 1, "fixture bundle should declare one anchor");
 
-    let anchors = check_anchors(rel, &src, &okf).expect("fixture parses");
+    let bundle_findings = check_with_okf(rel, &src, &okf).expect("fixture parses");
+    let anchors = ground_findings(&bundle_findings);
     assert_eq!(
         anchors.len(),
         1,
@@ -95,7 +96,7 @@ fn dangling_anchor_trips_only_under_okf() {
             .collect::<Vec<_>>()
             .join("\n")
     );
-    let f = &anchors[0];
+    let f = anchors[0];
     assert_eq!(f.rule, Rule::DanglingAnchor);
     assert!(f.path.starts_with("norms[3]"), "GROUND-3 at {}", f.path);
     assert!(f.detail.contains("#does-not-exist"));

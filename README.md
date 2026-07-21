@@ -101,10 +101,9 @@ a red fixture, because a checker you've only seen say "clean" isn't a checker.
 Exploratory. The design rests on two converging paper spikes
 ([`docs/spikes/`](docs/spikes/)) and the design note
 ([`docs/DESIGN.md`](docs/DESIGN.md)); [`examples/`](examples/) holds the two
-concepts as seed norm files. Checks 1, 2, 4, 5, and 6 are built; the remaining
-DESIGN §4 check (coverage) is still to come, and no
-execution engine or neural components are built yet — see the design note's
-Non-goals.
+concepts as seed norm files. All six DESIGN §4 checks are built (coverage and
+GROUND-3 need an OKF bundle, via `--okf`); no execution engine or neural
+components are built yet — see the design note's Non-goals.
 
 [okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
 [pacioli-split]: https://github.com/ojhermann-org/pacioli#why-this-split

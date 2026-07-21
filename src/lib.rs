@@ -11,6 +11,8 @@
 //!   about plain data, by a well-defined path (SEAM-1/2/3).
 //! - [`regime`] — check 6: a norm's mechanized artifacts belong to its regime
 //!   (REGIME-1/2).
+//! - [`cover`] — check 3: a norm that claims any of its subject's declared
+//!   states must claim them all (COVER-1/2; needs a bundle).
 //! - [`conflict`] — check 4, the priority edge: a defeat that collides is
 //!   reported three-valued — underdetermined while its `binds` is a judgment
 //!   hole (CONFLICT-1/2/3).
@@ -20,6 +22,7 @@
 //! citation."
 
 mod conflict;
+mod cover;
 mod expr;
 mod ground;
 mod leak;
@@ -58,6 +61,10 @@ pub enum Rule {
     UndeterminedRegime,
     /// REGIME-2: a `@regime`-stamped artifact does not match its norm's regime.
     CrossRegimeArtifact,
+    /// COVER-1: a declared state of the subject that no branch covers.
+    UncoveredState,
+    /// COVER-2: a `covers:` naming a state the subject does not declare.
+    UndeclaredStateClaimed,
     /// CONFLICT-1: a `defeats:` names no norm in the document.
     DanglingDefeat,
     /// CONFLICT-2: a collision whose resolving `binds` is a judgment hole.
@@ -81,6 +88,8 @@ impl Rule {
             Rule::MixedBranchForms => "SEAM-3",
             Rule::UndeterminedRegime => "REGIME-1",
             Rule::CrossRegimeArtifact => "REGIME-2",
+            Rule::UncoveredState => "COVER-1",
+            Rule::UndeclaredStateClaimed => "COVER-2",
             Rule::DanglingDefeat => "CONFLICT-1",
             Rule::UnderdeterminedConflict => "CONFLICT-2",
             Rule::DeterminateConflict => "CONFLICT-3",
@@ -101,6 +110,8 @@ impl Rule {
             Rule::MixedBranchForms => "mixed branch forms",
             Rule::UndeterminedRegime => "undetermined regime",
             Rule::CrossRegimeArtifact => "cross-regime artifact",
+            Rule::UncoveredState => "uncovered state",
+            Rule::UndeclaredStateClaimed => "undeclared state claimed",
             Rule::DanglingDefeat => "dangling defeat",
             Rule::UnderdeterminedConflict => "underdetermined conflict",
             Rule::DeterminateConflict => "determinate conflict",
@@ -208,8 +219,8 @@ pub(crate) fn key_str(k: &Value) -> String {
 /// Run the always-on static checks (check 1 + check 2's structural rules
 /// GROUND-1/2) over one `.okf.md` source. `file` labels the findings.
 ///
-/// GROUND-3 (anchor resolution) needs an OKF bundle and is *not* included here;
-/// call [`check_anchors`] with an [`Okf`] for that.
+/// GROUND-3 (anchor resolution) and coverage (check 3) need an OKF bundle and
+/// are *not* included here; call [`check_with_okf`] with an [`Okf`] for those.
 pub fn check(file: &str, source: &str) -> Result<Vec<Finding>, String> {
     let doc = parse(source)?;
     let mut findings = Vec::new();
@@ -221,13 +232,15 @@ pub fn check(file: &str, source: &str) -> Result<Vec<Finding>, String> {
     Ok(findings)
 }
 
-/// Run GROUND-3 only: every well-formed citation's `ref` must resolve to an
-/// anchor in `okf`. Kept separate from [`check`] so a caller running both does
-/// not double-report the structural findings.
-pub fn check_anchors(file: &str, source: &str, okf: &Okf) -> Result<Vec<Finding>, String> {
+/// Run the checks that need an OKF bundle: GROUND-3 (anchor resolution) and
+/// check 3 (coverage, COVER-1/2, which reads the bundle's subject state
+/// spaces). Kept separate from [`check`] so a caller running both does not
+/// double-report the always-on findings.
+pub fn check_with_okf(file: &str, source: &str, okf: &Okf) -> Result<Vec<Finding>, String> {
     let doc = parse(source)?;
     let mut findings = Vec::new();
     ground::anchors(&doc, file, okf, &mut findings);
+    cover::check(&doc, file, okf, &mut findings);
     Ok(findings)
 }
 
@@ -238,9 +251,10 @@ fn parse(source: &str) -> Result<Value, String> {
     serde_yaml::from_str(front).map_err(|e| format!("YAML frontmatter parse error: {e}"))
 }
 
-/// Extract the YAML frontmatter (text between the leading `---` fence and the
+/// Extract the YAML frontmatter (also used to read an OKF concept file's own
+/// frontmatter; see [`okf`]). (text between the leading `---` fence and the
 /// next `---` line). Returns `None` if the source doesn't open with a fence.
-fn frontmatter(source: &str) -> Option<&str> {
+pub(crate) fn frontmatter(source: &str) -> Option<&str> {
     let mut lines = source.lines();
     if lines.next()?.trim_end() != "---" {
         return None;
