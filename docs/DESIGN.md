@@ -43,8 +43,11 @@ names the judgment chain.
   ([Pacioli #41][pacioli-41]) and must not put policy into a Lean type (the seam
   invariant), one level up.
 - **The type system encodes the seam.** The mechanical/judgment cut is a checked
-  property, exactly as ["policy never leaks into types"][pacioli-seam] is on the
-  Lean side.
+  property, as ["policy never leaks into types"][pacioli-seam] is on the Lean
+  side — but by **declaration**, not derivation. Lean's version holds because
+  the type is uninhabited without the input; deon's holds because the norm
+  declared a color and the checker held it to that. The checked property is
+  internal honesty — weaker than Lean's guarantee, and still worth having.
 
 ## 3. Abstract syntax (node types)
 
