@@ -54,17 +54,22 @@ names the judgment chain.
 A **norm** is:
 
 ```
-norm        := { id, regime, concept-ref, subject, deontic, defeated-by*,
-                 branches }
-branches    := antecedent, commitment, otherwise?   # binary form
-             | cases[]                              # n-ary form
-case        := { when?: antecedent, commitment }    # a `when`-less case is the residual
+norm        := { id, regime, concept-ref, subject, deontic, defeat?, branches }
+branches    := antecedent, covers?, commitment, otherwise?   # binary form
+             | cases[]                                       # n-ary form
+case        := { when?: antecedent, covers?, commitment }    # `when`-less = residual
 regime      := standard/jurisdiction scope (e.g. ASC-840, IFRS-16)   # norms are regime-indexed
 concept-ref := link to the governing OKF concept
 subject     := the record-state the obligation ranges over (a PO, a lease, ...)
 deontic     := obligation | permission | prohibition
-otherwise   := { commitment }   # residual branch: the commitment taken when the antecedent does NOT hold
+covers      := state-id+        # which of the subject's declared states this branch handles
+otherwise   := { covers?, commitment }   # residual: taken when the antecedent does NOT hold
 ```
+
+`covers` is coverage's input (§4 check 3); the state ids it names are declared
+for the subject in the OKF bundle, not here. A norm that names no state makes no
+coverage claim and is not checked — and neither is a norm with no `subject:`,
+since there is nothing to look a state space up by.
 
 `regime` and `concept-ref` are **inherited** from the OKF document's frontmatter
 (`regime:`, `concept:`) unless a norm sets its own — e.g. the lease document is
@@ -173,8 +178,17 @@ defeat      := { defeats: norm-id+, binds: colored-predicate, modifies?: <field 
 **Concrete rendering (how §3 maps to `examples/`).** §3 is _abstract_ syntax; the
 seed norms render it as OKF frontmatter YAML. Each lives in a `<concept>.okf.md`
 file — OKF-format markdown: the norm block is the YAML frontmatter, the
-authoritative cited prose is the body beneath it. The field names differ from the
-abstract grammar in two deliberate ways:
+authoritative cited prose is the body beneath it. The **`.okf.md` suffix is
+load-bearing**: the checker collects norm files by it, while an OKF bundle's
+concept files are plain `*.md`.
+
+The document's frontmatter carries `concept`, `title`, `regime`, `sources`, and
+**`norms:` — a sequence, and the only load-bearing key**. Anything else
+(`coverage-note`, `regime-note`, …) is prose for the reader. Four of the six
+checks walk that sequence directly, so a misspelled `norms:` means they silently
+find nothing to check.
+
+The field names differ from the abstract grammar in these deliberate ways:
 
 - A commitment's `deontic-target` is written as the **domain field(s) it sets**
   — `classification: finance`, `timing: over-time`, `capitalize: false`,
@@ -186,6 +200,16 @@ abstract grammar in two deliberate ways:
   grounds: … }` for an open choice. (An earlier draft of this note gave a bare
   `method: retrospective`, contradicting the `method?: judgment` production
   above — the drift LEAK-4 now catches.)
+- Every colored node carries its color as an explicit **`color:` key** — the key
+  every check reads, and the one the abstract productions above leave implicit.
+  `judgment(grounds)` is written `{ predicate: <name>, color: judgment, grounds:
+  { ref, source } }`; a mechanical predicate is `{ predicate: <name>, color:
+  mechanical, test: <expr>, inputs?: { <name>: { color, source? } } }`, or the
+  nested form `{ <name>: { mechanical: { test, inputs? } } }` the lease seed
+  uses. `violated(norm-id, status)` renders its status **as the color**:
+  `{ predicate: violated, norm: <id>, color: judgment, grounds: { … } }`. A
+  `threshold` carries its regime stamp and its color as keys:
+  `{ value: 0.75, regime: ASC-840, color: mechanical }`.
 - A `defeat` appears in **either** of two shapes: as a **standalone** node
   (`{ defeats, binds, modifies? }`, e.g. `var-consideration-constraint`
   modifying the defeated norm's commitment), **or** as a **full norm carrying a
@@ -254,9 +278,11 @@ abstract grammar in two deliberate ways:
    branch), on `otherwise`, or on each `cases[i]`. **Coverage is opt-in per
    norm:** a norm that claims no state is skipped, since nothing can be said
    about whether its branches are total; once a norm claims one state it must
-   claim them all. The rev-rec seed carries `covers:` tags and its third state is
-   left unrepresented on purpose, so COVER-1 reports it — the finding spike 1
-   predicted (F5), kept live rather than papered over.
+   claim them all. A norm with no `subject:` is skipped for the same reason —
+   without a subject there is no state space to check against. The rev-rec seed
+   carries `covers:` tags and its third state is left unrepresented on purpose,
+   so COVER-1 reports it — the finding spike 1 predicted (F5), kept live rather
+   than papered over.
 4. **Conditional conflict.** When norm A `defeats` norm B via a judgment `binds`,
    report the conflict as _underdetermined until grounded_, not a static
    contradiction. _Implemented_ in `deon-check`: CONFLICT-1 a `defeats:` naming
