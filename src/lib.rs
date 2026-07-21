@@ -36,6 +36,23 @@ use std::fmt;
 
 use serde_yaml::{Mapping, Value};
 
+/// Whether a finding is a defect to fix, or a report about the norm that is
+/// **correct as written**.
+///
+/// The distinction is DESIGN §4.4's, not an ergonomic nicety: a conflict bound
+/// by a judgment is reported as _underdetermined until grounded_, explicitly
+/// **not** as a static contradiction. Treating that as a failure would mean a
+/// correctly modelled defeasible norm — IAS 32's puttable-instrument exception,
+/// say — could never pass the checker. Reports are printed like anything else;
+/// they just do not make the run fail.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
+    /// Something to fix: the norm is malformed, uncited, or dishonest.
+    Defect,
+    /// Something to know: the norm is well-formed and the answer is open.
+    Report,
+}
+
 /// Every rule the checker can report, across all checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Rule {
@@ -105,6 +122,14 @@ impl Rule {
             Rule::UnderdeterminedConflict => "CONFLICT-2",
             Rule::DeterminateConflict => "CONFLICT-3",
             Rule::UncoloredPriority => "CONFLICT-4",
+        }
+    }
+
+    /// Whether this rule reports a defect or an open question (see [`Severity`]).
+    pub fn severity(self) -> Severity {
+        match self {
+            Rule::UnderdeterminedConflict => Severity::Report,
+            _ => Severity::Defect,
         }
     }
 

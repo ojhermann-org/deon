@@ -392,6 +392,21 @@ method + estimate bundles feeding downstream Lean.
 - **Overlap with existing standards** (SBVR modalities, LegalRuleML, Governatori's
   defeasible deontic logic) vs. what is genuinely ours (the two bounded edges).
   Adopt where we can; the seam-anchoring is the novel part.
+- **The seam contract is asserted, not checked.** SEAM-1/2 verify a norm reaches
+  a non-empty commitment, not that what it commits to is a value the kernel can
+  consume — `commitment: { classification: vibes }` passes today. A subject's
+  admissible commitment values are norm content of the same kind as its state
+  space, so the bundle contract is the natural place to declare them
+  ([probe](probes/ias32-liability-vs-equity.md), finding 2).
+- **A measurement layer sits between the repos, owned by neither.** deon commits
+  to a _policy selection_ (`classification: liability`, `timing: over-time`);
+  Pacioli's kernel consumes numbers plus a classification, treating a schedule as
+  plain-data input rather than deriving it. IAS 32's compound instruments make
+  this concrete: one instrument becomes two classified accounts, split by an
+  allocation neither repo computes (probe, finding 3).
+- **"States" may be the wrong word for what coverage partitions.** It fits a
+  subject that moves through states (a performance obligation) and strains on one
+  that merely has terms (a financial instrument) (probe, finding 4).
 
 ## 9. Non-goals (deliberately deferred)
 
