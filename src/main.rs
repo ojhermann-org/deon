@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use deon_check::{check, check_bundle, check_with_okf, Okf};
+use deon_check::{check, check_bundle, check_with_okf, Okf, Severity};
 
 const USAGE: &str = "\
 deon-check — static checks for deon norms (DESIGN §4)
@@ -34,7 +34,13 @@ conflict (CONFLICT-1/2/3), termination-at-seam (SEAM-1/2/3) and regime hygiene
 (REGIME-1/2).
 
 Exit codes:
-    0  clean (no findings)   1  findings   2  usage / IO / parse error";
+    0  no defects (reports may still be printed)
+    1  one or more defects
+    2  usage / IO / parse error
+
+A *report* is a finding about a norm that is correct as written — currently
+CONFLICT-2, an underdetermined conflict (DESIGN §4.4). It is printed, but does
+not fail the run.";
 
 fn main() -> ExitCode {
     let mut quiet = false;
@@ -99,6 +105,7 @@ fn main() -> ExitCode {
     }
 
     let mut total = 0usize;
+    let mut defects = 0usize;
 
     // The bundle is checked once, before the norm files that read it: its state
     // declarations are norm content, and a bundle that does not ground its own
@@ -108,6 +115,10 @@ fn main() -> ExitCode {
         for f in &findings {
             println!("{f}");
         }
+        defects += findings
+            .iter()
+            .filter(|f| f.rule.severity() == Severity::Defect)
+            .count();
         total += findings.len();
     }
 
@@ -139,6 +150,10 @@ fn main() -> ExitCode {
         for f in &findings {
             println!("{f}");
         }
+        defects += findings
+            .iter()
+            .filter(|f| f.rule.severity() == Severity::Defect)
+            .count();
         total += findings.len();
         if !quiet && findings.is_empty() {
             eprintln!("ok: {display}");
@@ -154,11 +169,17 @@ fn main() -> ExitCode {
         if total == 0 {
             eprintln!("clean: 0 findings in {} file(s){ground3}", files.len());
         } else {
-            eprintln!("{total} finding(s) in {} file(s){ground3}", files.len());
+            let reports = total - defects;
+            eprintln!(
+                "{defects} defect(s), {reports} report(s) in {} file(s){ground3}",
+                files.len()
+            );
         }
     }
 
-    if total == 0 {
+    // Reports do not fail the run: an underdetermined conflict is a fact about
+    // the norm, not a fault in it (DESIGN §4.4).
+    if defects == 0 {
         ExitCode::SUCCESS
     } else {
         ExitCode::from(1)

@@ -8,7 +8,7 @@
 
 use std::path::PathBuf;
 
-use deon_check::{check, Finding, Rule};
+use deon_check::{check, Finding, Rule, Severity};
 
 fn read(rel: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
@@ -158,5 +158,38 @@ fn claim_shapes_are_recognized_not_skipped() {
         c.len(),
         3,
         "expected exactly 3 conflict findings:\n{rendered}"
+    );
+}
+
+/// A correctly modelled defeasible norm must be able to pass. IAS 32's
+/// contingent-settlement and puttable-instrument provisions genuinely defeat the
+/// base classification, conditionally on judgments — so CONFLICT-2 is a *report*
+/// about a norm that is right as written, not a defect in it (DESIGN §4.4).
+#[test]
+fn an_underdetermined_conflict_is_a_report_not_a_defect() {
+    let rel = "examples/financial-instrument-classification.okf.md";
+    let findings = check(rel, &read(rel)).expect("seed parses");
+    let c = conflict_findings(&findings);
+
+    assert_eq!(
+        c.len(),
+        2,
+        "expected both defeat edges reported:\n{}",
+        render(&c)
+    );
+    for f in &c {
+        assert_eq!(f.rule, Rule::UnderdeterminedConflict);
+        assert_eq!(
+            f.rule.severity(),
+            Severity::Report,
+            "an underdetermined conflict must not fail the run"
+        );
+    }
+    assert!(
+        findings
+            .iter()
+            .all(|f| f.rule.severity() == Severity::Report),
+        "the IAS 32 seed carries no defects:\n{}",
+        render(&findings.iter().collect::<Vec<_>>())
     );
 }

@@ -111,7 +111,7 @@ two worked spikes that this design rests on: **[docs/spikes/](docs/spikes/)**.
   regime (REGIME-1/2).
 
 ```sh
-nix run . -- examples/                    # the seed norms → clean (exit 0)
+nix run . -- examples/                    # the seed norms → no defects (exit 0)
 nix run . -- tests/fixtures/leaky.okf.md  # red: 3 located leaks (exit 1)
 
 # The bundle-backed checks. This bundle declares the performance-obligation
