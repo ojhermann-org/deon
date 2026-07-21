@@ -37,15 +37,20 @@ invariant that protects deon's value — do not weaken it.
 
 ## Build and verify
 
-- **Representational-only, for now.** The first deliverable is static analysis
-  over a normal form (leak detection, coverage gaps, dangling grounds,
-  conditional conflict — docs/DESIGN.md §4). There is **no execution engine, no
-  custom syntax, and no neural component** yet, by deliberate choice
-  (docs/DESIGN.md §9). Don't add them without going through the design.
-- **No CI yet.** The repo mirrors Pacioli's ruleset *minus* the Lean/nix status
-  checks (they don't apply here). When deon grows a checker + CI, re-add a
-  required-status-check leg to `.github/rulesets/main.json` and reconcile with
-  `scripts/settings.sh`.
+- **Representational-only.** The deliverable is static analysis over a normal
+  form, and **all six docs/DESIGN.md §4 checks are built** as the `deon-check`
+  crate: leak detection (LEAK), grounding completeness (GROUND), coverage
+  (COVER), conditional conflict (CONFLICT), termination-at-seam (SEAM), regime
+  hygiene (REGIME). There is **no execution engine, no custom syntax, and no
+  neural component**, by deliberate choice (docs/DESIGN.md §9). Don't add them
+  without going through the design.
+- **Run it:** `nix run . -- examples/` for the always-on checks; add
+  `--okf <bundle>` for the two that need an OKF concept bundle (GROUND-3 anchor
+  resolution and coverage, which reads each subject's declared state space).
+  `cargo test` runs the acceptance suite: seeds green, red fixture per check.
+- **CI:** `nix flake check` is the single required status check on `main`
+  (`.github/rulesets/main.json`, reconciled by `scripts/settings.sh`). It gates
+  `cargo fmt --check`, `clippy -D warnings`, and the test suite.
 - **Repo settings as code:** `.github/rulesets/main.json` reconciled by
   `scripts/settings.sh` (mirrors Pacioli's approach).
 
@@ -55,8 +60,9 @@ invariant that protects deon's value — do not weaken it.
   queue); nothing merges without the owner. `scripts/merge.sh <pr>` lands an
   owner-authored PR via ruleset bypass — the agent runs it **only on the owner's
   explicit ask** (see ~/.claude/CLAUDE.md, Pull-requests → the deon carve-out).
-- Because deon has no CI, `merge.sh` without `--force` currently refuses (no
-  checks to confirm green); **`--force` stays owner-run/confirm-first.**
+- `merge.sh` gates on green CI, so it lands a PR **without** `--force` once
+  `nix flake check` passes; **`--force` (which bypasses that gate) stays
+  owner-run/confirm-first.**
 
 ## Deletion & creation
 
