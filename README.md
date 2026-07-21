@@ -83,6 +83,8 @@ the seam (DESIGN §4):
   its `ref` resolves to a real anchor (GROUND-3).
 - **Termination-at-seam** (check 5) — the bottom edge: every norm reaches a
   commitment about plain data (SEAM-1/2).
+- **Regime hygiene** (check 6) — a norm's mechanized artifacts belong to its
+  regime (REGIME-1/2).
 
 ```sh
 nix run . -- examples/                       # the seed norms → clean (exit 0)
@@ -99,10 +101,10 @@ a red fixture, because a checker you've only seen say "clean" isn't a checker.
 Exploratory. The design rests on two converging paper spikes
 ([`docs/spikes/`](docs/spikes/)) and the design note
 ([`docs/DESIGN.md`](docs/DESIGN.md)); [`examples/`](examples/) holds the two
-concepts as seed norm files. Checks 1, 2, and 5 are built; the remaining
-DESIGN §4 checks (coverage, conditional conflict, regime hygiene) are still to
-come, and no execution engine or neural components are built yet — see the design
-note's Non-goals.
+concepts as seed norm files. Checks 1, 2, 5, and 6 are built; the remaining
+DESIGN §4 checks (coverage, conditional conflict) are still to come, and no
+execution engine or neural components are built yet — see the design note's
+Non-goals.
 
 [okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
 [pacioli-split]: https://github.com/ojhermann-org/pacioli#why-this-split

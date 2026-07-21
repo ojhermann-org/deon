@@ -9,6 +9,8 @@
 //!   citation (GROUND-1/2/3).
 //! - [`seam`] — check 5, the bottom edge: every norm terminates in a commitment
 //!   about plain data (SEAM-1/2).
+//! - [`regime`] — check 6: a norm's mechanized artifacts belong to its regime
+//!   (REGIME-1/2).
 //!
 //! Checks 1 and 2 together enforce deon's core invariant — "no judgment is ever
 //! silently evaluated mechanically, *and* every judgment hole carries a
@@ -18,6 +20,7 @@ mod expr;
 mod ground;
 mod leak;
 mod okf;
+mod regime;
 mod seam;
 
 pub use okf::Okf;
@@ -45,6 +48,10 @@ pub enum Rule {
     UnreachedSeam,
     /// SEAM-2: a commitment / residual branch constrains no plain data.
     EmptyCommitment,
+    /// REGIME-1: a norm has no effective regime.
+    UndeterminedRegime,
+    /// REGIME-2: a `@regime`-stamped artifact does not match its norm's regime.
+    CrossRegimeArtifact,
 }
 
 impl Rule {
@@ -59,6 +66,8 @@ impl Rule {
             Rule::DanglingAnchor => "GROUND-3",
             Rule::UnreachedSeam => "SEAM-1",
             Rule::EmptyCommitment => "SEAM-2",
+            Rule::UndeterminedRegime => "REGIME-1",
+            Rule::CrossRegimeArtifact => "REGIME-2",
         }
     }
 
@@ -73,6 +82,8 @@ impl Rule {
             Rule::DanglingAnchor => "dangling anchor",
             Rule::UnreachedSeam => "unreached seam",
             Rule::EmptyCommitment => "empty commitment",
+            Rule::UndeterminedRegime => "undetermined regime",
+            Rule::CrossRegimeArtifact => "cross-regime artifact",
         }
     }
 }
@@ -140,6 +151,14 @@ pub(crate) fn aggregation(m: &Mapping) -> Option<&Mapping> {
     }
 }
 
+/// The string value at `map[key]`, if `map` is a mapping with a string there.
+pub(crate) fn str_field(map: &Value, key: &str) -> Option<String> {
+    match map.get(key) {
+        Some(Value::String(s)) => Some(s.clone()),
+        _ => None,
+    }
+}
+
 /// Render a mapping key as a path segment.
 pub(crate) fn key_str(k: &Value) -> String {
     match k {
@@ -161,6 +180,7 @@ pub fn check(file: &str, source: &str) -> Result<Vec<Finding>, String> {
     leak::check(&doc, file, &mut findings);
     ground::structural(&doc, file, &mut findings);
     seam::check(&doc, file, &mut findings);
+    regime::check(&doc, file, &mut findings);
     Ok(findings)
 }
 

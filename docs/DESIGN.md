@@ -167,7 +167,13 @@ abstract grammar in two deliberate ways:
    `otherwise` residual branch that carries none).
 6. **Regime hygiene.** A norm applies only within its `regime`; flag facts
    evaluated against a norm whose regime doesn't apply (e.g. lessee
-   classification under IFRS-16 — the norm doesn't exist there).
+   classification under IFRS-16 — the norm doesn't exist there). The
+   facts-against-wrong-regime facet needs runtime facts (deferred, §9); the
+   representational facet is _implemented_ in `deon-check`: REGIME-1 a norm with
+   no effective regime (own or inherited), REGIME-2 a `@regime`-stamped artifact
+   (a threshold) that doesn't match its norm's regime. Cross-regime `defeats`
+   edges are not flagged — the lease seed uses one deliberately to model
+   regime-relativity.
 
 ## 5. Signature capability (the reason to build it)
 
