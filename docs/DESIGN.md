@@ -51,8 +51,11 @@ names the judgment chain.
 A **norm** is:
 
 ```
-norm        := { id, regime, concept-ref, subject, antecedent, deontic,
-                 commitment, otherwise?, defeated-by* }
+norm        := { id, regime, concept-ref, subject, deontic, defeated-by*,
+                 branches }
+branches    := antecedent, commitment, otherwise?   # binary form
+             | cases[]                              # n-ary form
+case        := { when?: antecedent, commitment }    # a `when`-less case is the residual
 regime      := standard/jurisdiction scope (e.g. ASC-840, IFRS-16)   # norms are regime-indexed
 concept-ref := link to the governing OKF concept
 subject     := the record-state the obligation ranges over (a PO, a lease, ...)
@@ -65,6 +68,22 @@ otherwise   := { commitment }   # residual branch: the commitment taken when the
 `ASC-840` but its `short-term-low-value-election` norm overrides to `IFRS-16`. A
 norm without an explicit `otherwise` makes no commitment when its antecedent
 fails (that silence is what the coverage check in §4 reasons about).
+
+**Two branch forms, one meaning.** The **binary** form (`antecedent` +
+`commitment` + optional `otherwise`) is sugar for the **n-ary** `cases:` form:
+the antecedent is the first case's `when`, and `otherwise` is a trailing
+`when`-less case. The n-ary form exists because a subject's states are not
+always two: IFRS 15's performance obligation has a _third_ state — "not yet
+satisfied → recognize nothing" — that an over-time/point-in-time binary cannot
+express (spike 1, F5). Coverage (§4 check 3) reasons about exactly that gap, so
+the language must be able to state the fix, not merely have the gap named.
+
+Every check that reasons about a norm's commitments treats a case as a branch:
+termination (§4 check 5) requires each case to carry its own commitment, and
+conditional conflict (§4 check 4) collides against a middle case as readily as
+against a residual. Write a norm in **one** form or the other; mixing them is
+redundant rather than unsound (both sets of branches are walked), so the checker
+does not currently police it.
 
 **Predicates** (the antecedent is built from these) are _colored_:
 

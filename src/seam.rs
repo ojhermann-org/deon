@@ -12,12 +12,16 @@
 //! - **SEAM-1 — unreached seam.** A norm with neither a `commitment` nor a
 //!   `modifies`: its obligation leads nowhere.
 //! - **SEAM-2 — empty commitment.** A `commitment` / `modifies` that is present
-//!   but empty, or an `otherwise` residual branch that carries no commitment —
-//!   a branch that constrains no plain data.
+//!   but empty, or an `otherwise` residual branch — or a `cases:` branch — that
+//!   carries no commitment: a branch that constrains no plain data.
+//!
+//! Both branch forms of DESIGN §3 are checked: a norm written in the n-ary
+//! `cases:` form reaches the seam through its cases, and each case is held to
+//! the same standard as a residual `otherwise`.
 
 use serde_yaml::Value;
 
-use crate::{Finding, Rule};
+use crate::{cases, Finding, Rule};
 
 /// Run check 5 over the parsed document, appending findings.
 pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
@@ -30,8 +34,9 @@ pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
 
         let commitment = norm.get("commitment");
         let modifies = norm.get("modifies");
+        let cases = cases(norm);
 
-        if commitment.is_none() && modifies.is_none() {
+        if commitment.is_none() && modifies.is_none() && cases.is_empty() {
             out.push(Finding::new(
                 file,
                 &path,
@@ -55,6 +60,22 @@ pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
                     &format!("{path}.modifies"),
                     Rule::EmptyCommitment,
                     "modifies is empty — it changes no commitment".to_string(),
+                ));
+            }
+        }
+
+        // Every `cases:` branch must carry a commitment of its own — a case is a
+        // branch of the norm, so a case that commits nothing leads nowhere just
+        // as a dead-end `otherwise` does.
+        for (case, commitment) in &cases {
+            if !is_nonempty(*commitment) {
+                out.push(Finding::new(
+                    file,
+                    &format!("{path}.{case}"),
+                    Rule::EmptyCommitment,
+                    "case carries no commitment about plain data — this branch of the \
+                     norm leads nowhere"
+                        .to_string(),
                 ));
             }
         }

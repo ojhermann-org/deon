@@ -31,7 +31,7 @@
 
 use serde_yaml::Value;
 
-use crate::{is_judgment_color, key_str, str_field, Finding, Rule};
+use crate::{cases, is_judgment_color, key_str, str_field, Finding, Rule};
 
 /// Run check 4 over the parsed document, appending findings.
 pub(crate) fn check(doc: &Value, file: &str, out: &mut Vec<Finding>) {
@@ -133,19 +133,27 @@ fn collisions(a: &Value, b: &Value) -> Vec<String> {
 }
 
 /// Every `(field, value)` a norm constrains at the seam: its `commitment`, its
-/// residual `otherwise.commitment`, and any `modifies` (whose `commitment.<f>`
-/// keys are normalized to `<f>`, since they name a field of the defeated norm's
-/// commitment). `note` is prose, not a constraint, so it is skipped.
+/// residual `otherwise.commitment`, every `cases[i].commitment`, and any
+/// `modifies` (whose `commitment.<f>` keys are normalized to `<f>`, since they
+/// name a field of the defeated norm's commitment). `note` is prose, not a
+/// constraint, so it is skipped.
+///
+/// Cases are gathered like any other branch: a collision against the *middle*
+/// case of an n-ary norm is as real as one against its residual.
 fn constrained(norm: &Value) -> Vec<(String, Value)> {
     let mut out = Vec::new();
-    for (source, strip) in [
+    let sources = [
         (norm.get("commitment"), false),
         (
             norm.get("otherwise").and_then(|o| o.get("commitment")),
             false,
         ),
         (norm.get("modifies"), true),
-    ] {
+    ]
+    .into_iter()
+    .chain(cases(norm).into_iter().map(|(_, c)| (c, false)));
+
+    for (source, strip) in sources {
         let Some(Value::Mapping(m)) = source else {
             continue;
         };

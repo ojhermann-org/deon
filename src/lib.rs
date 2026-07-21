@@ -167,6 +167,22 @@ pub(crate) fn aggregation(m: &Mapping) -> Option<&Mapping> {
     }
 }
 
+/// A norm's `cases:` branches as `(path, commitment)` pairs — the n-ary form of
+/// the binary `commitment` + `otherwise` shape (DESIGN §3). A case without a
+/// `when:` is the residual, exactly what `otherwise` sugars; both are branches
+/// here, so every check that reasons about a norm's commitments sees all of
+/// them. Returns empty for a norm written in the binary form.
+pub(crate) fn cases(norm: &Value) -> Vec<(String, Option<&Value>)> {
+    match norm.get("cases") {
+        Some(Value::Sequence(s)) => s
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (format!("cases[{i}]"), c.get("commitment")))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
 /// The string value at `map[key]`, if `map` is a mapping with a string there.
 pub(crate) fn str_field(map: &Value, key: &str) -> Option<String> {
     match map.get(key) {

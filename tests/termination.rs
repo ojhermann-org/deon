@@ -72,3 +72,25 @@ fn unterminated_fixture_trips_seam_rules() {
     assert!(seam2.iter().any(|f| f.path == "norms[1].commitment"));
     assert!(seam2.iter().any(|f| f.path == "norms[2].otherwise"));
 }
+
+/// The n-ary `cases:` form: a well-formed three-case norm terminates, and
+/// SEAM-2 reaches *inside* the form — a case that commits nothing is a branch
+/// that leads nowhere, exactly as a dead-end `otherwise` is.
+#[test]
+fn cases_form_terminates_and_is_reached() {
+    let rel = "tests/fixtures/three-case.okf.md";
+    let findings = check(rel, &read(rel)).expect("fixture parses");
+    let s = seam_findings(&findings);
+
+    assert_eq!(
+        s.len(),
+        1,
+        "expected 1 termination finding, got:\n{}",
+        s.iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert_eq!(s[0].rule, Rule::EmptyCommitment);
+    assert_eq!(s[0].path, "norms[1].cases[1]");
+}
