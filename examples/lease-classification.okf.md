@@ -58,10 +58,11 @@ regime-note: >
 
 The cited judgment prose lives here, beside the norm block. This stub stands in
 for the OKF concept that the `grounds:` refs point into (`#option`,
-`#specialized`, `#low-value`). Because that OKF bundle does not exist yet, those
-anchors are dangling, so the grounding-completeness check (DESIGN §4, check 2) is
-_expected_ to flag every hole here until the bundle lands — the leak-detection
-check (check 1) is the one this seed is authored to pass clean.
+`#specialized`, `#low-value`). This seed passes the always-on checks clean —
+leak detection (check 1) and structural grounding (check 2, GROUND-1/2): every
+criterion is cited and typed. Only anchor _resolution_ (GROUND-3, under `--okf`)
+is expected to flag, because that OKF bundle does not exist yet, so the refs
+dangle until it lands.
 
 Note the two regime-scoped thresholds (`0.75 @ASC-840`, `0.90 @ASC-840`,
 `12mo @IFRS-16`): each is a **colored artifact**, not an inert number — the

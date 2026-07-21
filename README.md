@@ -72,29 +72,35 @@ two worked spikes that this design rests on: **[docs/spikes/](docs/spikes/)**.
 
 ## The checker, so far
 
-The first static check is built: **`deon-check`**, the leak detector (DESIGN §4,
-check 1). It walks the OKF-frontmatter norm schema and flags the mechanical /
-judgment seam being crossed silently — a `mechanical` test computing on a
-judgment (LEAK-1), an undeclared/uncolored input (LEAK-2), or a
-`judgment-aggregation` faked as a formula (LEAK-3).
+**`deon-check`** walks the OKF-frontmatter norm schema and enforces both edges of
+the seam (DESIGN §4):
+
+- **Leak detection** (check 1) — the mechanical edge: a `mechanical` test
+  computing on a judgment (LEAK-1), an undeclared/uncolored input (LEAK-2), or a
+  `judgment-aggregation` faked as a formula (LEAK-3).
+- **Grounding completeness** (check 2) — the judgment edge: every judgment
+  criterion is cited (GROUND-1) and its source typed (GROUND-2); with `--okf`,
+  its `ref` resolves to a real anchor (GROUND-3).
 
 ```sh
-nix run . -- examples/            # the seed norms → clean (exit 0)
-cargo run -- tests/fixtures/leaky.okf.md   # the red fixture → 3 located leaks (exit 1)
+nix run . -- examples/                       # the seed norms → clean (exit 0)
+cargo run -- tests/fixtures/leaky.okf.md      # red: 3 located leaks (exit 1)
+cargo run -- --okf <bundle> examples/        # also resolve grounds anchors
 ```
 
-It ships with both a green case (the seed norms, authored honestly) and a red
-case (a deliberately-leaky fixture), because a checker you've only seen say
-"clean" isn't a checker. `nix flake check` builds, lints, and tests it.
+Every check ships with both a green case (the seed norms, authored honestly) and
+a red fixture, because a checker you've only seen say "clean" isn't a checker.
+`nix flake check` builds, lints, and tests it.
 
 ## Status
 
 Exploratory. The design rests on two converging paper spikes
 ([`docs/spikes/`](docs/spikes/)) and the design note
 ([`docs/DESIGN.md`](docs/DESIGN.md)); [`examples/`](examples/) holds the two
-concepts as seed norm files. Grounding-completeness (check 2) and the remaining
-DESIGN §4 checks are still to come; no execution engine and no neural components
-are built yet — see the design note's Non-goals.
+concepts as seed norm files. Checks 1–2 are built; the remaining DESIGN §4 checks
+(coverage, conditional conflict, termination-at-seam, regime hygiene) are still
+to come, and no execution engine or neural components are built yet — see the
+design note's Non-goals.
 
 [okf-spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
 [pacioli-split]: https://github.com/ojhermann-org/pacioli#why-this-split
