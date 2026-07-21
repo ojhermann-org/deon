@@ -67,6 +67,8 @@ pub enum Rule {
     UndeclaredStateClaimed,
     /// COVER-3: a bundle state declaration that names no state.
     MalformedState,
+    /// COVER-4: a bundle block that reads as a state space but yields none.
+    UnreadableStateSpace,
     /// CONFLICT-1: a `defeats:` names no norm in the document.
     DanglingDefeat,
     /// CONFLICT-2: a collision whose resolving `binds` is a judgment hole.
@@ -93,6 +95,7 @@ impl Rule {
             Rule::UncoveredState => "COVER-1",
             Rule::UndeclaredStateClaimed => "COVER-2",
             Rule::MalformedState => "COVER-3",
+            Rule::UnreadableStateSpace => "COVER-4",
             Rule::DanglingDefeat => "CONFLICT-1",
             Rule::UnderdeterminedConflict => "CONFLICT-2",
             Rule::DeterminateConflict => "CONFLICT-3",
@@ -116,6 +119,7 @@ impl Rule {
             Rule::UncoveredState => "uncovered state",
             Rule::UndeclaredStateClaimed => "undeclared state claimed",
             Rule::MalformedState => "malformed state declaration",
+            Rule::UnreadableStateSpace => "unreadable state space",
             Rule::DanglingDefeat => "dangling defeat",
             Rule::UnderdeterminedConflict => "underdetermined conflict",
             Rule::DeterminateConflict => "determinate conflict",

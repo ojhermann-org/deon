@@ -29,7 +29,7 @@ Options:
     -h, --help      show this help
 
 Checks: leak detection (LEAK-1/2/3), grounding completeness (GROUND-1/2;
-GROUND-3 only with --okf), coverage (COVER-1/2/3, only with --okf), conditional
+GROUND-3 only with --okf), coverage (COVER-1/2/3/4, only with --okf), conditional
 conflict (CONFLICT-1/2/3), termination-at-seam (SEAM-1/2/3) and regime hygiene
 (REGIME-1/2).
 

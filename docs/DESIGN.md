@@ -194,7 +194,7 @@ abstract grammar in two deliberate ways:
    hides, not one it closes. _Implemented_ in `deon-check`: COVER-1 a declared
    state no branch of the norm claims; COVER-2 a `covers:` naming a state the
    subject does not declare; COVER-3 a bundle state declaration that names no
-   state.
+   state; COVER-4 a bundle block that reads as a state space but yields none.
 
    The checker cannot know a subject's states — deriving them would be an
    evaluator (§9) or a hardcoded accounting fact (out of scope). So the **state
@@ -210,9 +210,14 @@ abstract grammar in two deliberate ways:
 
    The declaration is itself a judgment about the standard, so it is held to
    deon's rule for a judgment: it must cite. The bundle's own state declarations
-   are checked once per bundle — COVER-3 for a declaration naming no state
-   (which would otherwise drop out of the space silently, weakening every
-   COVER-1), and GROUND-1/2/3 for its citation.
+   are checked once per bundle — COVER-3 for a declaration naming no state,
+   COVER-4 for a block that reads as a state space but yields none (unparseable
+   frontmatter; a subject with no `states:` list), and GROUND-1/2/3 for a
+   declaration's citation. COVER-3 and COVER-4 are the same failure at two
+   altitudes: something that reads as a state space silently yields nothing, and
+   a state absent from the space is a state coverage stops looking for. A
+   concept file with _no_ frontmatter is not a defect — a prose-only concept
+   file is ordinary.
 
    A branch claims a state with `covers:` — on the norm (the antecedent-holds
    branch), on `otherwise`, or on each `cases[i]`. **Coverage is opt-in per
