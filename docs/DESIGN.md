@@ -253,8 +253,8 @@ The field names differ from the abstract grammar in these deliberate ways:
 
    The checker cannot know a subject's states — deriving them would be an
    evaluator (§9) or a hardcoded accounting fact (out of scope). So the **state
-   space is declared**, as norm content in the OKF bundle beside the prose that
-   grounds it, and coverage runs only under `--okf` (like GROUND-3):
+   space is declared**, as norm content in the concept bundle beside the prose
+   that grounds it, and coverage runs only under `--okf` (like GROUND-3):
 
    ```yaml
    subjects:
@@ -320,6 +320,14 @@ The field names differ from the abstract grammar in these deliberate ways:
    (a threshold) that doesn't match its norm's regime. Cross-regime `defeats`
    edges are not flagged — the lease seed uses one deliberately to model
    regime-relativity.
+
+**The bundle contract.** Two checks (GROUND-3 and coverage) read norm content
+that lives beside its cited prose rather than in a norm file: the **anchors** a
+citation can resolve to, and each subject's **declared state space**. That
+requirement is deon's own, and is stated as such — an OKF bundle is the intended
+carrier and the only binding implemented (`src/okf.rs`), but the contract does
+not wait on an upstream format to settle. The alternative was to leave a third
+of the checker blocked on a spec in another project's repo.
 
 ## 5. Signature capability (the reason to build it)
 

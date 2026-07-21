@@ -1,9 +1,15 @@
-//! A minimal, **provisional** OKF concept bundle — the two things the checker
-//! needs from norm content that lives beside its cited prose.
+//! **deon's bundle contract** — what the checker requires of the concept bundle
+//! it consumes, and the binding that reads it out of OKF-format markdown.
 //!
-//! The real OKF format (a directory of markdown concept files with YAML
-//! frontmatter, one concept per file) is upstream and not yet settled, so this
-//! reads only what the bundle-backed checks need:
+//! This is deliberately framed as *deon's* contract rather than as a provisional
+//! stub of someone else's spec. Norm content lives beside its cited prose in a
+//! bundle (see the scope rule: deon owns the language, not the norms), and the
+//! checker needs exactly two things from it. OKF is the intended carrier and the
+//! only binding implemented, but the requirement is deon's and does not wait on
+//! an upstream format to settle — otherwise the two bundle-backed checks would
+//! be blocked on a spec in another project's repo indefinitely.
+//!
+//! What deon requires of a bundle:
 //!
 //! - the set of **anchor ids** a bundle declares, for GROUND-3. An anchor is
 //!   declared by a trailing `{#id}` on any line (the pandoc/markdown-it
@@ -29,8 +35,18 @@
 //! and *how* it grounds, so coverage can hold the bundle to the same standard a
 //! norm file is held to (issue #18).
 //!
-//! Swap this module when the OKF spec lands; nothing else in the checker
-//! depends on the format.
+//! **The OKF binding.** A bundle is a directory of markdown concept files; the
+//! two requirements above are read from `{#id}` anchors and from a file's YAML
+//! frontmatter. That mapping is this module's only job, and nothing else in the
+//! checker depends on it — when the OKF spec settles, or another carrier is
+//! wanted, the binding changes here and the contract above does not.
+//!
+//! One consequence, decided rather than deferred (issue #20): a concept file
+//! with **no frontmatter at all** declares no state space and is *not* a defect.
+//! A prose-only concept file is ordinary, and nothing in deon's contract says a
+//! carrier must put frontmatter on every file. Frontmatter that is present but
+//! unparseable, or a subject with no `states:` list, is a different matter — the
+//! file is announcing a declaration and yielding none, which is COVER-4.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
