@@ -180,10 +180,18 @@ pub(crate) fn is_judgment_color(c: &str) -> bool {
 }
 
 /// The aggregation *body* at this node, if this mapping is one — identified by
-/// its `factors` + `grounds` content (the wrapper `judgment-aggregation:` key is
-/// walked through to its body, so keyed and bare forms detect once).
+/// `factors` alone (the wrapper `judgment-aggregation:` key is walked through to
+/// its body, so keyed and bare forms detect once).
+///
+/// Recognition keys on the **weakest signal that an aggregation was intended**,
+/// deliberately. Requiring `grounds` too would mean an aggregation that omits
+/// its citation stops being an aggregation: invisible to GROUND-1, the rule that
+/// exists to demand that citation, *and* to LEAK-3, which would otherwise catch
+/// the formula it carries. The check must not get weaker on the more dishonest
+/// input. `grounds` is what is being checked *for*; it cannot also be what
+/// identifies the node.
 pub(crate) fn aggregation(m: &Mapping) -> Option<&Mapping> {
-    if m.contains_key("factors") && m.contains_key("grounds") {
+    if m.contains_key("factors") {
         Some(m)
     } else {
         None

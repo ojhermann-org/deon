@@ -37,6 +37,7 @@ norms:
     note: measurement (ROU asset + lease liability) is downstream Lean
 
   - id: short-term-low-value-election  # an election defeats the default
+    subject: lease                     # ranges over the same record it tests
     regime: IFRS-16
     deontic: permission
     defeats: lease-classification
