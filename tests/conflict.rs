@@ -97,3 +97,28 @@ fn conflicting_fixture_trips_each_rule_once() {
     assert_eq!(c1.path, "norms[3].defeats");
     assert!(c1.detail.contains("no-such-norm"), "{}", c1.detail);
 }
+
+/// Conditional conflict reaches inside the n-ary `cases:` form: a defeater that
+/// collides only with a *middle* case is still a collision, and its judgment
+/// `binds` makes it underdetermined rather than a static contradiction.
+#[test]
+fn conflict_collides_against_a_middle_case() {
+    let rel = "tests/fixtures/three-case.okf.md";
+    let findings = check(rel, &read(rel)).expect("fixture parses");
+    let c = conflict_findings(&findings);
+
+    assert_eq!(
+        c.len(),
+        1,
+        "expected 1 conflict finding, got:\n{}",
+        render(&c)
+    );
+    assert_eq!(c[0].rule, Rule::UnderdeterminedConflict);
+    assert_eq!(c[0].path, "norms[2].defeats");
+    assert!(
+        c[0].detail.contains("underdetermined(control-retained)")
+            && c[0].detail.contains("point-in-time"),
+        "collides on the middle case: {}",
+        c[0].detail
+    );
+}

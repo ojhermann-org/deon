@@ -17,7 +17,12 @@ fn read(rel: &str) -> String {
 fn seam_findings(findings: &[Finding]) -> Vec<&Finding> {
     findings
         .iter()
-        .filter(|f| matches!(f.rule, Rule::UnreachedSeam | Rule::EmptyCommitment))
+        .filter(|f| {
+            matches!(
+                f.rule,
+                Rule::UnreachedSeam | Rule::EmptyCommitment | Rule::MixedBranchForms
+            )
+        })
         .collect()
 }
 
@@ -71,4 +76,59 @@ fn unterminated_fixture_trips_seam_rules() {
     // empty commitment at norms[1].commitment; dead-end otherwise at norms[2].otherwise
     assert!(seam2.iter().any(|f| f.path == "norms[1].commitment"));
     assert!(seam2.iter().any(|f| f.path == "norms[2].otherwise"));
+}
+
+/// The n-ary `cases:` form: a well-formed three-case norm terminates, and
+/// SEAM-2 reaches *inside* the form — a case that commits nothing is a branch
+/// that leads nowhere, exactly as a dead-end `otherwise` is.
+#[test]
+fn cases_form_terminates_and_is_reached() {
+    let rel = "tests/fixtures/three-case.okf.md";
+    let findings = check(rel, &read(rel)).expect("fixture parses");
+    let s = seam_findings(&findings);
+
+    assert_eq!(
+        s.len(),
+        1,
+        "expected 1 termination finding, got:\n{}",
+        s.iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert_eq!(s[0].rule, Rule::EmptyCommitment);
+    assert_eq!(s[0].path, "norms[1].cases[1]");
+}
+
+/// SEAM-3: each way of mixing the binary and n-ary forms is flagged, and the
+/// mixture alone is the defect — every branch in the fixture commits, so
+/// nothing trips SEAM-1 or SEAM-2.
+#[test]
+fn mixed_branch_forms_are_flagged() {
+    let rel = "tests/fixtures/mixed-forms.okf.md";
+    let findings = check(rel, &read(rel)).expect("fixture parses");
+    let s = seam_findings(&findings);
+
+    assert_eq!(
+        s.len(),
+        3,
+        "expected 3 termination findings, got:\n{}",
+        s.iter()
+            .map(|f| f.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(
+        s.iter().all(|f| f.rule == Rule::MixedBranchForms),
+        "the mixture is the only defect — every branch commits"
+    );
+
+    for (i, key) in [(0, "`antecedent`"), (1, "`otherwise`"), (2, "`commitment`")] {
+        let f = s.iter().find(|f| f.path == format!("norms[{i}]")).unwrap();
+        assert!(
+            f.detail.contains(key),
+            "norms[{i}] names {key}: {}",
+            f.detail
+        );
+    }
 }

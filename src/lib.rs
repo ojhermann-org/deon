@@ -8,7 +8,7 @@
 //! - [`ground`] — check 2, the judgment edge: every judgment *hole* carries a
 //!   citation (GROUND-1/2/3).
 //! - [`seam`] — check 5, the bottom edge: every norm terminates in a commitment
-//!   about plain data (SEAM-1/2).
+//!   about plain data, by a well-defined path (SEAM-1/2/3).
 //! - [`regime`] — check 6: a norm's mechanized artifacts belong to its regime
 //!   (REGIME-1/2).
 //! - [`conflict`] — check 4, the priority edge: a defeat that collides is
@@ -52,6 +52,8 @@ pub enum Rule {
     UnreachedSeam,
     /// SEAM-2: a commitment / residual branch constrains no plain data.
     EmptyCommitment,
+    /// SEAM-3: a norm mixes the binary and n-ary branch forms.
+    MixedBranchForms,
     /// REGIME-1: a norm has no effective regime.
     UndeterminedRegime,
     /// REGIME-2: a `@regime`-stamped artifact does not match its norm's regime.
@@ -76,6 +78,7 @@ impl Rule {
             Rule::DanglingAnchor => "GROUND-3",
             Rule::UnreachedSeam => "SEAM-1",
             Rule::EmptyCommitment => "SEAM-2",
+            Rule::MixedBranchForms => "SEAM-3",
             Rule::UndeterminedRegime => "REGIME-1",
             Rule::CrossRegimeArtifact => "REGIME-2",
             Rule::DanglingDefeat => "CONFLICT-1",
@@ -95,6 +98,7 @@ impl Rule {
             Rule::DanglingAnchor => "dangling anchor",
             Rule::UnreachedSeam => "unreached seam",
             Rule::EmptyCommitment => "empty commitment",
+            Rule::MixedBranchForms => "mixed branch forms",
             Rule::UndeterminedRegime => "undetermined regime",
             Rule::CrossRegimeArtifact => "cross-regime artifact",
             Rule::DanglingDefeat => "dangling defeat",
@@ -164,6 +168,22 @@ pub(crate) fn aggregation(m: &Mapping) -> Option<&Mapping> {
         Some(m)
     } else {
         None
+    }
+}
+
+/// A norm's `cases:` branches as `(path, commitment)` pairs — the n-ary form of
+/// the binary `commitment` + `otherwise` shape (DESIGN §3). A case without a
+/// `when:` is the residual, exactly what `otherwise` sugars; both are branches
+/// here, so every check that reasons about a norm's commitments sees all of
+/// them. Returns empty for a norm written in the binary form.
+pub(crate) fn cases(norm: &Value) -> Vec<(String, Option<&Value>)> {
+    match norm.get("cases") {
+        Some(Value::Sequence(s)) => s
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (format!("cases[{i}]"), c.get("commitment")))
+            .collect(),
+        _ => Vec::new(),
     }
 }
 

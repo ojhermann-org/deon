@@ -51,8 +51,11 @@ names the judgment chain.
 A **norm** is:
 
 ```
-norm        := { id, regime, concept-ref, subject, antecedent, deontic,
-                 commitment, otherwise?, defeated-by* }
+norm        := { id, regime, concept-ref, subject, deontic, defeated-by*,
+                 branches }
+branches    := antecedent, commitment, otherwise?   # binary form
+             | cases[]                              # n-ary form
+case        := { when?: antecedent, commitment }    # a `when`-less case is the residual
 regime      := standard/jurisdiction scope (e.g. ASC-840, IFRS-16)   # norms are regime-indexed
 concept-ref := link to the governing OKF concept
 subject     := the record-state the obligation ranges over (a PO, a lease, ...)
@@ -65,6 +68,37 @@ otherwise   := { commitment }   # residual branch: the commitment taken when the
 `ASC-840` but its `short-term-low-value-election` norm overrides to `IFRS-16`. A
 norm without an explicit `otherwise` makes no commitment when its antecedent
 fails (that silence is what the coverage check in §4 reasons about).
+
+**Two branch forms, one meaning.** The **binary** form (`antecedent` +
+`commitment` + optional `otherwise`) is sugar for the **n-ary** `cases:` form:
+the antecedent is the first case's `when`, and `otherwise` is a trailing
+`when`-less case. The n-ary form exists because a subject's states are not
+always two: IFRS 15's performance obligation has a _third_ state — "not yet
+satisfied → recognize nothing" — that an over-time/point-in-time binary cannot
+express (spike 1, F5). Coverage (§4 check 3) reasons about exactly that gap, so
+the language must be able to state the fix, not merely have the gap named.
+
+Every check that reasons about a norm's commitments treats a case as a branch:
+termination (§4 check 5) requires each case to carry its own commitment, and
+conditional conflict (§4 check 4) collides against a middle case as readily as
+against a residual.
+
+The forms are **alternatives, not layers**: write a norm in one or the other.
+Mixing them leaves the path to a commitment undefined, in three distinct ways,
+and the checker flags all three (SEAM-3):
+
+- a stray `antecedent` beside `cases:` is read by no check for branch structure,
+  so it is dead text that still passes leak detection and grounding — while an
+  author would reasonably read it as a **guard** ("the norm applies when this
+  holds; within that, split into cases"). That is a plausible future meaning,
+  deliberately _not_ defined here: a guard interacts with coverage (§4 check 3),
+  which would have to decide whether cases must cover the subject's states or
+  only the states inside the guard. Better to reject the shape now and define it
+  when check 3 forces the question;
+- an `otherwise` beside a `when`-less case gives the norm **two** mutually
+  exclusive residuals, and which takes effect is unstated;
+- a top-level `commitment` beside `cases:` reads as unconditional, contradicting
+  the split.
 
 **Predicates** (the antecedent is built from these) are _colored_:
 
@@ -170,7 +204,9 @@ abstract grammar in two deliberate ways:
 5. **Termination-at-seam.** Every norm's obligation reaches a `commitment` about
    plain data; flag any that don't. _Implemented_ in `deon-check` (SEAM-1 a norm
    with neither a `commitment` nor a `modifies`; SEAM-2 an empty commitment or an
-   `otherwise` residual branch that carries none).
+   `otherwise` residual branch that carries none; SEAM-3 a norm mixing the
+   binary and n-ary branch forms of §3, whose path to a commitment is then
+   undefined).
 6. **Regime hygiene.** A norm applies only within its `regime`; flag facts
    evaluated against a norm whose regime doesn't apply (e.g. lessee
    classification under IFRS-16 — the norm doesn't exist there). The
