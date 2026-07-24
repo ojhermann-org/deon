@@ -13,6 +13,11 @@
 //! and still parses: a checker that cannot build a defective document cannot
 //! report anything located about it.
 //!
+//! Written against **v0.2**, which the crate follows as it changes. v0.2 leaves
+//! §4 and §11 as they were, retires `timestamp` for `generated.at`, and adds
+//! the provenance, trust, and lifecycle families (§5) this crate does not read
+//! yet.
+//!
 //! [spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md#4-concept-documents
 
 use std::fmt;
@@ -101,8 +106,10 @@ impl Frontmatter {
         self.string("resource")
     }
 
-    /// `timestamp` — last-changed datetime, kept as written. Whether it parses
-    /// as ISO 8601 is a question about the string, not about the document.
+    /// `timestamp` — a v0.1 field, superseded by `generated.at` (§13.1) and
+    /// read here as the fallback v0.2 allows for older documents. Kept as
+    /// written: whether it parses as ISO 8601 is a question about the string,
+    /// not about the document.
     pub fn timestamp(&self) -> Option<&str> {
         self.string("timestamp")
     }
@@ -124,9 +131,9 @@ impl Frontmatter {
     }
 
     /// The block exactly as written, fences excluded. §4.1 lets producers add
-    /// any keys and asks consumers to preserve unknown ones, so extension keys
-    /// survive here — the payload a semantic layer reads and this crate does
-    /// not interpret.
+    /// any keys and *requires* consumers not to reject unknown ones, so
+    /// extension keys — and the §5 families — survive here: the payload a
+    /// semantic layer reads and this crate does not interpret.
     pub fn source(&self) -> &str {
         &self.source
     }
