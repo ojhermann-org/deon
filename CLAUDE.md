@@ -107,6 +107,21 @@ stays useful.
   each file* (MD049 infers it from the first use — `docs/DESIGN.md` is
   underscore, this file is asterisk). Both bite often.
 
+## Comments
+
+Comments enhance the code; they do not narrate it. This repo argues for its
+designs in prose, which is easy to mistake for licence to write a lot — it is
+not. Say what has to be said, as succinctly as it can be said.
+
+- **Keep the reasoning a reader cannot recover** from the code or the spec: why
+  a type omits a field, why a defective input must still parse, why two
+  different inputs deliberately give the same answer, what was rejected.
+- **Cut restatement** of the spec, narration of what the code plainly does, and
+  the rhetorical tail on a point already made.
+- **Put a rationale on the item whose behaviour it explains**, not in the module
+  header. One line for an obvious accessor or test; a paragraph only where a
+  decision was made.
+
 ## Landing changes
 
 - `main` is **PR-only** and branch-protected (required owner review + merge
