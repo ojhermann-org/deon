@@ -7,6 +7,12 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+# Frontmatter is YAML, so a YAML parser is unavoidable. serde_yaml is archived
+# upstream but stable, and it is what the reference implementation already uses;
+# it stays behind `Frontmatter`, which exposes plain Rust types and the block's
+# own text, so no `serde_yaml` type reaches this crate's public API and it can
+# be swapped without touching a caller. Named in issue #35.
+serde_yaml = "0.9"
 
 [lints]
 workspace = true
