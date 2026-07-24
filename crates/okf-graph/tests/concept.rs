@@ -1,4 +1,4 @@
-//! Acceptance tests for the concept-document model (issue #35, SPEC §4).
+//! Acceptance tests for the concept-document model (issue #35, SPEC v0.2 §4).
 //!
 //! Green: the spec's own worked examples, every field §4.1 names reading back.
 //! Red: the four shapes that are not concept documents, plus the near misses
@@ -7,7 +7,8 @@
 
 use okf_graph::{Concept, ConceptError};
 
-/// SPEC §4.3, abridged: a concept bound to a resource, stating every field.
+/// SPEC §4.3, abridged: a concept bound to a resource, stating every field
+/// §4.1 names — plus a §5 trust family this crate carries without reading.
 const RESOURCE_CONCEPT: &str = "\
 ---
 type: BigQuery Table
@@ -15,7 +16,7 @@ title: Customer Orders
 description: One row per completed customer order across all channels.
 resource: https://example.com/bigquery?p=acme&d=sales&t=orders
 tags: [sales, orders, revenue]
-timestamp: 2026-05-28T14:30:00Z
+generated: { by: reference_agent/gemini-2.5-pro, at: 2026-05-28T14:30:00Z }
 ---
 
 # Schema
@@ -25,14 +26,15 @@ timestamp: 2026-05-28T14:30:00Z
 | `order_id` | STRING | Globally unique order identifier. |
 ";
 
-/// SPEC §4.4: a concept bound to no resource, its body linking to another.
+/// SPEC §4.4, abridged: a concept bound to no resource, its body linking to
+/// another.
 const PLAYBOOK_CONCEPT: &str = "\
 ---
 type: Playbook
-title: Incident response — data freshness alert
+title: \"Incident response: data freshness alert\"
 description: Steps to triage a freshness alert on the orders pipeline.
 tags: [oncall, incident]
-timestamp: 2026-04-12T09:00:00Z
+generated: { by: human:ahormati, at: 2026-04-12T09:00:00Z }
 ---
 
 # Trigger
@@ -57,7 +59,31 @@ fn reads_every_field_the_spec_names() {
         Some("https://example.com/bigquery?p=acme&d=sales&t=orders")
     );
     assert_eq!(front.tags(), Some(vec!["sales", "orders", "revenue"]));
-    assert_eq!(front.timestamp(), Some("2026-05-28T14:30:00Z"));
+}
+
+/// v0.2 retired `timestamp` for `generated.at`, and lets a consumer fall back
+/// to it on a v0.1 document — so the accessor stays, as a fallback.
+#[test]
+fn a_v0_1_timestamp_still_reads() {
+    let concept = Concept::parse("---\ntype: Metric\ntimestamp: 2026-05-28T14:30:00Z\n---\n")
+        .expect("parses");
+
+    assert_eq!(
+        concept.frontmatter().timestamp(),
+        Some("2026-05-28T14:30:00Z")
+    );
+}
+
+/// The §5 provenance, trust, and lifecycle families are not read here, and
+/// survive whole in the block — unread is not the same as dropped.
+#[test]
+fn an_unread_family_survives_in_the_block() {
+    let concept = Concept::parse(RESOURCE_CONCEPT).expect("a §4.3 concept parses");
+
+    assert!(concept
+        .frontmatter()
+        .source()
+        .contains("generated: { by: reference_agent/gemini-2.5-pro, at: 2026-05-28T14:30:00Z }"));
 }
 
 /// A field the document does not state is absent — not an error, not `""`.
@@ -101,8 +127,8 @@ fn a_horizontal_rule_in_the_body_is_body() {
     assert_eq!(concept.body().as_str(), "above\n\n---\n\nbelow\n");
 }
 
-/// The accessors cover the six fields §4.1 names; the keys producers add
-/// survive in the block's own text, which is what §4.1 asks of a consumer.
+/// The accessors cover the fields §4.1 names; the keys producers add survive
+/// in the block's own text, which is what §4.1 asks of a consumer.
 #[test]
 fn extension_keys_are_preserved() {
     let source = "---\ntype: Metric\nowner: analytics-team\nsubjects:\n  - revenue\n---\nbody\n";

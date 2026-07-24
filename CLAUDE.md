@@ -37,6 +37,20 @@ an unsettled format stay quarantined in one crate. It is **not** a plugin
 architecture: there is one evaluation today, and no second one can yet be
 named.
 
+## Order of precedence
+
+**okf > `okf-graph` > `okf-normative` > applications.** The spec is upstream of
+everything here: we match its structure and adapt as it changes, rather than
+bending it to what is already built. Inside the repo, topology is upstream of
+semantics, and both are upstream of anything built on them.
+
+- **`deon` is reference, not oracle.** It implements an earlier reading; where
+  it and the spec disagree, the spec wins and `deon` stays as it is.
+- **A spec revision is ordinary work.** OKF is **v0.2** as of 2026-07-24 (§13
+  lists the changes: `timestamp` → `generated.at`, `# Citations` → `sources`,
+  plus the new §5 and §10 families). Read the "Changes from" section, fix what
+  went stale, file what is newly modellable.
+
 ## Scope: the tools, not the knowledge
 
 Neither tool is accounting-specific, and neither is an authority on any domain.
