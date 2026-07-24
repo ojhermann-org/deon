@@ -1,0 +1,218 @@
+//! An OKF **concept document** ([SPEC §4][spec]): one markdown file, read as a
+//! YAML [`Frontmatter`] block and a markdown [`Body`]. Those two parts are the
+//! whole model.
+//!
+//! No **concept id**: §2 defines it as the file's path within the bundle, which
+//! is a fact about the bundle rather than the document. Identity belongs to
+//! whatever loads one.
+//!
+//! **Parse leniently, judge strictly.** §9 requires consumers to tolerate a
+//! missing optional field, an unknown `type`, an unknown extra key, a broken
+//! link — so parsing fails only where the two parts cannot be told apart, never
+//! over what the frontmatter says. A concept with no `type` fails conformance
+//! and still parses: a checker that cannot build a defective document cannot
+//! report anything located about it.
+//!
+//! [spec]: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md#4-concept-documents
+
+use std::fmt;
+
+use serde_yaml::{Mapping, Value};
+
+/// One OKF concept document: its frontmatter and its body (§4).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Concept {
+    frontmatter: Frontmatter,
+    body: Body,
+}
+
+impl Concept {
+    /// Read a concept document from one markdown file's text: a `---`-fenced
+    /// YAML block, then the body verbatim. What can fail is shape, never
+    /// content — see [`ConceptError`].
+    pub fn parse(source: &str) -> Result<Concept, ConceptError> {
+        let (front, body) = split(source)?;
+        Ok(Concept {
+            frontmatter: Frontmatter::parse(front)?,
+            body: Body(body.to_string()),
+        })
+    }
+
+    /// The document's frontmatter.
+    pub fn frontmatter(&self) -> &Frontmatter {
+        &self.frontmatter
+    }
+
+    /// The document's body.
+    pub fn body(&self) -> &Body {
+        &self.body
+    }
+}
+
+/// The YAML metadata block at the top of a concept document (§4.1).
+///
+/// Every accessor answers `Some` only when the key is present *and* holds the
+/// shape §4.1 describes. That conflates "absent" with "present but the wrong
+/// shape" deliberately: neither is this type's to judge, and the block is kept
+/// whole so a conformance check can tell them apart.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Frontmatter {
+    source: String,
+    fields: Mapping,
+}
+
+impl Frontmatter {
+    /// Parse the YAML text between the `---` fences.
+    fn parse(source: &str) -> Result<Frontmatter, ConceptError> {
+        let value = serde_yaml::from_str::<Value>(source)
+            .map_err(|e| ConceptError::MalformedFrontmatter(e.to_string()))?;
+        let fields = match value {
+            Value::Mapping(fields) => fields,
+            // An empty block parses as null and declares nothing — which is an
+            // empty mapping. Its missing `type` is a finding, not a parse error.
+            Value::Null => Mapping::new(),
+            _ => return Err(ConceptError::FrontmatterNotAMapping),
+        };
+        Ok(Frontmatter {
+            source: source.to_string(),
+            fields,
+        })
+    }
+
+    /// `type` — the one required field, naming the kind of concept. Spelled out
+    /// because `type` is a keyword. `None` is a §9 conformance failure to
+    /// report, not a reason to refuse the document.
+    pub fn concept_type(&self) -> Option<&str> {
+        self.string("type")
+    }
+
+    /// `title` — display name; a consumer may derive one from the filename.
+    pub fn title(&self) -> Option<&str> {
+        self.string("title")
+    }
+
+    /// `description` — a one-sentence summary.
+    pub fn description(&self) -> Option<&str> {
+        self.string("description")
+    }
+
+    /// `resource` — URI of the asset described; absent for abstract concepts.
+    pub fn resource(&self) -> Option<&str> {
+        self.string("resource")
+    }
+
+    /// `timestamp` — last-changed datetime, kept as written. Whether it parses
+    /// as ISO 8601 is a question about the string, not about the document.
+    pub fn timestamp(&self) -> Option<&str> {
+        self.string("timestamp")
+    }
+
+    /// `tags` — the categorization strings, or `None` if absent or not a list
+    /// of strings. A list holding a non-string reads as `None` rather than the
+    /// strings beside it: a silently dropped tag is one nothing looks for again.
+    pub fn tags(&self) -> Option<Vec<&str>> {
+        match self.fields.get("tags") {
+            Some(Value::Sequence(items)) => items
+                .iter()
+                .map(|item| match item {
+                    Value::String(s) => Some(s.as_str()),
+                    _ => None,
+                })
+                .collect(),
+            _ => None,
+        }
+    }
+
+    /// The block exactly as written, fences excluded. §4.1 lets producers add
+    /// any keys and asks consumers to preserve unknown ones, so extension keys
+    /// survive here — the payload a semantic layer reads and this crate does
+    /// not interpret.
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+
+    /// The string at `key`, if the block holds a string there.
+    fn string(&self, key: &str) -> Option<&str> {
+        match self.fields.get(key) {
+            Some(Value::String(s)) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+}
+
+/// Everything after the frontmatter (§4.2): markdown, carried verbatim and not
+/// parsed. Links between concepts live here (§5), so topology will be read from
+/// it later.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Body(String);
+
+impl Body {
+    /// The body text as written.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// The ways a markdown file can fail to *be* a concept document — all about
+/// shape, none about content. §9 requires tolerating a missing `type`, an
+/// unknown key, or a broken link, and a checker cannot report on a document it
+/// refused to parse.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConceptError {
+    /// The file does not open with a `---` fence.
+    MissingFrontmatter,
+    /// The opening fence is never closed, so where the body begins is unknown.
+    UnterminatedFrontmatter,
+    /// The frontmatter is not parseable YAML; carries the parser's message.
+    MalformedFrontmatter(String),
+    /// The frontmatter parses as a scalar or a list, declaring no fields at all
+    /// — not the same as a block whose fields are absent.
+    FrontmatterNotAMapping,
+}
+
+impl fmt::Display for ConceptError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConceptError::MissingFrontmatter => {
+                write!(
+                    f,
+                    "no frontmatter: the file does not open with a `---` fence"
+                )
+            }
+            ConceptError::UnterminatedFrontmatter => {
+                write!(
+                    f,
+                    "unterminated frontmatter: the opening `---` fence is never closed"
+                )
+            }
+            ConceptError::MalformedFrontmatter(e) => {
+                write!(f, "frontmatter is not parseable YAML: {e}")
+            }
+            ConceptError::FrontmatterNotAMapping => {
+                write!(f, "frontmatter is not a mapping, so it declares no fields")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ConceptError {}
+
+/// Split a file into frontmatter text and body. Only the first line can open a
+/// block, so a `---` in the prose is a horizontal rule; the closing fence is the
+/// first `---` after it. Trimming both makes a CRLF file split the same way.
+fn split(source: &str) -> Result<(&str, &str), ConceptError> {
+    let mut lines = source.split_inclusive('\n');
+    let opening = lines.next().ok_or(ConceptError::MissingFrontmatter)?;
+    if opening.trim_end() != "---" {
+        return Err(ConceptError::MissingFrontmatter);
+    }
+    let start = opening.len();
+    let mut offset = start;
+    for line in source[start..].split_inclusive('\n') {
+        if line.trim_end() == "---" {
+            return Ok((&source[start..offset], &source[offset + line.len()..]));
+        }
+        offset += line.len();
+    }
+    Err(ConceptError::UnterminatedFrontmatter)
+}

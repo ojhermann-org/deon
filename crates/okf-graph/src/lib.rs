@@ -17,6 +17,12 @@
 //! "see also" may cycle harmlessly. A global acyclicity rule would reject a
 //! correct Bundle.
 //!
-//! Nothing is implemented yet.
+//! So far this crate models the unit the graph is made of: an OKF
+//! [`Concept`] — one markdown document, read as a [`Frontmatter`] block and a
+//! [`Body`] (SPEC §4). Bundles, ids, links, and resolution come next.
 //!
 //! [`okf-normative`]: https://github.com/ojhermann-org/okf-tools
+
+mod concept;
+
+pub use concept::{Body, Concept, ConceptError, Frontmatter};
